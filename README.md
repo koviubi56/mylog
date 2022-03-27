@@ -4,6 +4,8 @@ A simple logging library for Python.
 
 ## Example/Getting started
 
+First, install it with `pip install git+https://github.com/koviubi56/mylog.git`. [*Need more help?*](https://packaging.python.org/en/latest/tutorials/installing-packages/)
+
 ```py
 import mylog
 
