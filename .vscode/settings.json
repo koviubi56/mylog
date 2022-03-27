@@ -1,0 +1,15 @@
+{
+  "python.linting.enabled": true,
+  "python.linting.lintOnSave": true,
+  "python.linting.banditEnabled": true,
+  //  https://code.visualstudio.com/docs/editor/variables-reference
+  "python.linting.banditArgs": [
+    // "-ll",
+    // "-ii",
+    "--configfile=${workspaceFolder}/bandit.yml",
+    "--ini=${workspaceFolder}/.bandit"
+  ],
+  "files.associations": {
+    ".bandit": "ini"
+  }
+}
