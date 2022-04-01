@@ -15,6 +15,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import contextlib
 import dataclasses
 import threading
 import time
@@ -76,7 +77,7 @@ class Stringable(Protocol):
 Levelable = Union[Level, Stringable]
 
 
-def to_level(lvl: Levelable) -> Level:
+def to_level(lvl: Levelable, int_ok: bool = False) -> Level:
     try:
         return Level(lvl)
     except ValueError:
@@ -86,8 +87,11 @@ def to_level(lvl: Levelable) -> Level:
             try:
                 return getattr(Level, str(lvl).lower())
             except (AttributeError, ValueError):
+                with contextlib.suppress(ValueError):
+                    if int_ok:
+                        return int(lvl)
                 raise ValueError(
-                    f"Invalid level: {lvl}. Must be a Level, int, or str."
+                    f"Invalid level: {lvl!r}. Must be a Level, int, or str."
                 ) from None
 
 
@@ -467,16 +471,12 @@ class Logger:
                     )
                     return 0
                 # Log with parent
-                return self.higher._log(
-                    lvl, msg, traceback, frame_depth + 1
-                )
+                return self.higher._log(lvl, msg, traceback, frame_depth + 1)
             # Check if it's enabled
             if not self.is_enabled_for(lvl):
                 return 0
             # Log
-            return self._actually_log(
-                lvl, msg, frame_depth, traceback
-            )
+            return self._actually_log(lvl, msg, frame_depth, traceback)
         return 0
 
     def debug(self, msg: Stringable, traceback: bool = False) -> int:
@@ -509,9 +509,7 @@ class Logger:
         check_types(msg=(str, msg), traceback=(bool, traceback))
         return self._log(Level.info, msg, traceback, 4)
 
-    def warning(
-        self, msg: Stringable, traceback: bool = False
-    ) -> int:
+    def warning(self, msg: Stringable, traceback: bool = False) -> int:
         """
         Log a warning message.
 
@@ -541,9 +539,7 @@ class Logger:
         check_types(msg=(str, msg), traceback=(bool, traceback))
         return self._log(Level.error, msg, traceback, 4)
 
-    def critical(
-        self, msg: Stringable, traceback: bool = False
-    ) -> int:
+    def critical(self, msg: Stringable, traceback: bool = False) -> int:
         """
         Log a critical/fatal message.
 
@@ -579,7 +575,7 @@ class Logger:
             bool: Whether the logger is enabled for the given level.
         """
         check_types(lvl=((Level, object), lvl))  # ? Always passes?
-        lvl = to_level(lvl)
+        lvl = to_level(lvl, True)
         return lvl >= self.get_effective_level()
 
     def _get_x(self, attr: str, default: T) -> Union[T, Any]:
@@ -695,3 +691,5 @@ class IndentLogger:
 _allow_root = True
 root = Logger()
 _allow_root = False
+
+
