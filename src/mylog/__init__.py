@@ -268,7 +268,7 @@ class Logger:
         self.propagate = False  # ! Root logger should not propagate!
         self.lock = lock or threading.Lock()
         self.list: List[LogEvent] = []
-        self._id = uuid.uuid4()  # Only used for ==, !=, etc.
+        self._id = uuid.uuid4()  # Only used for ==, !=
 
         if higher is None:
             self.format: Optional[str] = DEFAULT_FORMAT
@@ -339,10 +339,12 @@ class Logger:
         if rv == "FATAL":
             rv = "CRITICAL"
 
+        rv = rv.ljust(8)
+
         if self.colors:
             rv = self._color(rv)
 
-        return rv.ljust(8)
+        return rv
 
     def format_msg(
         self,
