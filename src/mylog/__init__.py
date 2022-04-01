@@ -319,8 +319,6 @@ class Logger:
                 "on_yellow",
                 ["bold", "underline", "blink"],
             )
-        else:
-            warn(f"Unknown level: {rv!r}", UserWarning)
         return rv
 
     def level_to_str(self, lvl: Levelable) -> str:
