@@ -165,7 +165,7 @@ class NoLock:
         return
 
 
-Nonetype = type(None)
+NoneType = type(None)
 
 
 def check_types(**kwargs: Tuple[type, Any]) -> Literal[True]:
@@ -254,8 +254,8 @@ class Logger:
  created (internally)
         """
         check_types(
-            higher=((Logger, Nonetype), higher),
-            lock=((Nonetype, object), lock),  # ? Always passes?
+            higher=((Logger, NoneType), higher),
+            lock=((NoneType, object), lock),  # ? Always passes?
         )
         if (higher is None) and (not _allow_root):
             raise ValueError(
