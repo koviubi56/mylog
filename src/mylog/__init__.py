@@ -303,17 +303,18 @@ class Logger:
             str: The colorized string.
         """
         check_types(rv=(str, rv))
+        rv = rv.strip()
         if rv == "DEBUG":
-            rv = termcolor.colored("DEBUG", "blue")
+            rv = termcolor.colored("DEBUG".ljust(8), "blue")
         elif rv == "INFO":
-            rv = termcolor.colored("INFO", "cyan")
+            rv = termcolor.colored("INFO".ljust(8), "cyan")
         elif rv == "WARNING":
-            rv = termcolor.colored("WARNING", "yellow")
+            rv = termcolor.colored("WARNING".ljust(8), "yellow")
         elif rv == "ERROR":
-            rv = termcolor.colored("ERROR", "red")
+            rv = termcolor.colored("ERROR".ljust(8), "red")
         elif rv == "CRITICAL":
             rv = termcolor.colored(
-                "CRITICAL",
+                "CRITICAL".ljust(8),
                 "red",
                 "on_yellow",
                 ["bold", "underline", "blink"],
@@ -340,8 +341,6 @@ class Logger:
             rv = "WARNING"
         if rv == "FATAL":
             rv = "CRITICAL"
-
-        rv = rv.ljust(8)
 
         if self.colors:
             rv = self._color(rv)
@@ -469,12 +468,16 @@ class Logger:
                     )
                     return 0
                 # Log with parent
-                return self.higher._log(lvl, msg, traceback, frame_depth + 1)
+                return self.higher._log(
+                    lvl, msg, traceback, frame_depth + 1
+                )
             # Check if it's enabled
             if not self.is_enabled_for(lvl):
                 return 0
             # Log
-            return self._actually_log(lvl, msg, frame_depth, traceback)
+            return self._actually_log(
+                lvl, msg, frame_depth, traceback
+            )
         return 0
 
     def debug(self, msg: Stringable, traceback: bool = False) -> int:
@@ -507,7 +510,9 @@ class Logger:
         check_types(msg=(str, msg), traceback=(bool, traceback))
         return self._log(Level.info, msg, traceback, 4)
 
-    def warning(self, msg: Stringable, traceback: bool = False) -> int:
+    def warning(
+        self, msg: Stringable, traceback: bool = False
+    ) -> int:
         """
         Log a warning message.
 
@@ -537,7 +542,9 @@ class Logger:
         check_types(msg=(str, msg), traceback=(bool, traceback))
         return self._log(Level.error, msg, traceback, 4)
 
-    def critical(self, msg: Stringable, traceback: bool = False) -> int:
+    def critical(
+        self, msg: Stringable, traceback: bool = False
+    ) -> int:
         """
         Log a critical/fatal message.
 
