@@ -303,7 +303,6 @@ class Logger:
             str: The colorized string.
         """
         check_types(rv=(str, rv))
-        rv = rv.strip()
         if rv == "DEBUG":
             rv = termcolor.colored("DEBUG", "blue")
         elif rv == "INFO":
