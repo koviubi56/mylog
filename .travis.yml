@@ -10,7 +10,6 @@ jobs:
       dist: xenial
     - os: linux
       dist: bionic
-    - os: macos
     - os: osx
     - os: freebsd
 
