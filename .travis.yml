@@ -1,0 +1,16 @@
+language: python
+os: Trusty
+python:
+  - "3.8"
+  - "3.9"
+cache: pip
+before_install:
+  - pip install --upgrade pip setuptools wheel
+install:
+  - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  # TODO: check if you actually need pytest!!
+  - pip install flake8 pytest safety pytest-randomly
+script:
+  - python3 -m flake8 --count --show-source --statistics --ignore E501,N813,N802
+  - python3 -m pytest --ff -vv -r A -l --color=yes --code-highlight=yes --continue-on-collection-errors --doctest-modules
+  - safety check --full-report -r requirements.txt

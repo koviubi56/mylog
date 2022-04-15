@@ -41,6 +41,8 @@ from warnings import warn
 
 import termcolor  # type: ignore
 
+__version__ = "0.1.1"
+
 T = TypeVar("T")
 DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"
 

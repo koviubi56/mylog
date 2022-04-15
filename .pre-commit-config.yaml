@@ -1,57 +1,80 @@
+default_language_version:
+  python: python3
 repos:
-    - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v3.2.0
-      hooks:
-          - id: trailing-whitespace
-          - id: check-added-large-files
-          - id: check-ast
-          - id: check-builtin-literals
-          - id: check-byte-order-marker
-          - id: check-case-conflict
-          - id: check-docstring-first
-          - id: check-executables-have-shebangs
-          - id: check-json
-          - id: check-merge-conflict
-          - id: check-symlinks
-          - id: check-toml
-          - id: check-vcs-permalinks
-          - id: check-xml
-          - id: check-yaml
-          - id: detect-private-key
-          - id: end-of-file-fixer
-          - id: file-contents-sorter
-          - id: forbid-new-submodules
-          - id: mixed-line-ending
-          - id: no-commit-to-branch
-          - id: pretty-format-json
-          - id: requirements-txt-fixer
-          - id: sort-simple-yaml
-          - id: trailing-whitespace
-            language_version: python3
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: fix-encoding-pragma
+        args: ["--remove"]
+      - id: forbid-new-submodules
+      - id: mixed-line-ending
+      - id: name-tests-test
+        args: ["--django"]
+      - id: pretty-format-json
+        args: ["--autofix", "--indent", "4"]
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
 
-    - repo: https://github.com/PyCQA/flake8
-      rev: 4.0.1
-      hooks:
-          - id: flake8
-            language_version: python3
-            additional_dependencies:
-                [
-                    flake8-2020~=1.6.1,
-                    flake8-bugbear~=22.3.23,
-                    flake8-builtins~=1.5.3,
-                    flake8-comprehensions~=3.8.0,
-                    dlint~=0.12.0,
-                ]
+  - repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
+    hooks:
+      - id: flake8
+        args: []
+        additional_dependencies:
+            [
+                "flake8-2020~=1.6.1",
+                "flake8-bugbear~=22.3.23",
+                "flake8-builtins~=1.5.3",
+                "flake8-comprehensions~=3.8.0",
+                "dlint~=0.12.0",
+                "flake8-bandit~=3.0.0"
+            ]
 
-    - repo: https://github.com/asottile/pyupgrade
-      rev: v2.31.0
-      hooks:
-          - id: pyupgrade
-            args: [--py38-plus]
-
-    - repo: https://github.com/pre-commit/mirrors-mypy
-      rev: v0.931
-      hooks:
-          - id: mypy
-            files: ^src/
-            args: [--strict]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.32.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py38-plus"]
+  # TODO: Uncomment it if you want
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v0.942
+  #   hooks:
+  #     - id: mypy
+  #       files: ^src/
+  #       args: ["--strict"]
+  - repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.20.1
+    hooks:
+      - id: setup-cfg-fmt
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.2.4
+    hooks:
+      - id: python-safety-dependencies-check
+        files: requirements.txt
+  - repo: https://github.com/asottile/yesqa
+    rev: v1.3.0
+    hooks:
+      - id: yesqa
+  - repo: https://github.com/regebro/pyroma
+    rev: "3.2"
+    hooks:
+      - id: pyroma

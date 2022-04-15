@@ -1,0 +1,9 @@
+mode: chatops
+silent: false
+branchName: short
+gitSafeReplacementChar: "_"
+autoCloseIssue: true
+openDraftPR: true
+openPR: false
+experimental:
+  branchNameArgument: true
