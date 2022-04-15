@@ -20,7 +20,6 @@ python:
   # - "3.11"
 cache: pip
 before_install:
-  - apt update
   - sudo apt update
   - python3 -m pip install --upgrade pip setuptools wheel
 install:
