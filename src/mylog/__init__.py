@@ -67,12 +67,7 @@ class Stringable(Protocol):
     """Protocol for stringable objects."""
 
     def __str__(self) -> str:
-        """
-        Return the string representation of the object.
-
-        Returns:
-            str: The string representation of the object.
-        """
+        """Return the string representation of the object."""
         ...
 
 
@@ -111,9 +106,6 @@ class Lock(Protocol):
         Args:
             blocking (bool, optional): Defaults to True.
             timeout (float, optional): Defaults to -1.
-
-        Returns:
-            Union[bool, Literal[1]]
         """
         ...
 
@@ -127,8 +119,8 @@ class Lock(Protocol):
         Exit the lock.
 
         Args:
-            t (Type[BaseException]): The type of the exception.
-            v (BaseException): The exception.
+            typ (Type[BaseException]): The type of the exception.
+            value (BaseException): The exception.
             tb (TracebackType): The traceback.
         """
         ...
@@ -162,8 +154,8 @@ class NoLock:
         Exit the lock.
 
         Args:
-            t (Type[BaseException]): The type of the exception.
-            v (BaseException): The exception.
+            typ (Type[BaseException]): The type of the exception.
+            value (BaseException): The exception.
             tb (TracebackType): The traceback.
         """
         return
@@ -198,6 +190,9 @@ def check_types(
 
     Raises:
         TypeError: If the types are not correct.
+
+    Returns:
+        Literal[True]: Always True.
     """
     for arg, (expected, got) in kwargs.items():
         if not isinstance(got, expected):
@@ -336,7 +331,7 @@ class Logger:
         Convert a level to a string.
 
         Args:
-            lvl (Union[Level, Stringable]): The level.
+            lvl (Levelable): The level.
 
         Returns:
             str: The string.
@@ -368,7 +363,7 @@ class Logger:
         Format the message.
 
         Args:
-            lvl (Union[Level, Stringable]): The level of the message.
+            lvl (Levelable): The level of the message.
             msg (Stringable): The message.
             tb (bool): Whether to include the traceback.
             frame_depth (int): The depth of the frame.
@@ -407,7 +402,7 @@ class Logger:
         ! PUBLIC API, AND IT MUST NOT BE CALLED EXCEPT INTERNALLY!
 
         Args:
-            lvl (Union[Level, Stringable]): The level of the message.
+            lvl (Levelable): The level of the message.
             msg (Stringable): The message.
             frame_depth (int): The depth of the frame.
             tb (bool): Whether to include the traceback.
@@ -449,7 +444,7 @@ class Logger:
         debug, info, warning, error, critical.
 
         Args:
-            lvl (Union[Level, Stringable]): The level of the message.
+            lvl (Levelable): The level of the message.
             msg (Stringable): The message.
             traceback (bool): Whether to include the traceback.
             frame_depth (int): The depth of the frame. If you call this from\
@@ -584,7 +579,7 @@ class Logger:
         Check if the logger is enabled for the given level.
 
         Args:
-            lvl (Union[Level, Stringable]): The level to check.
+            lvl (Levelable): The level to check.
 
         Returns:
             bool: Whether the logger is enabled for the given level.
@@ -698,8 +693,8 @@ class IndentLogger:
         Unindent the logger by one.
 
         Args:
-            t (Type[BaseException]): The exception type.
-            v (BaseException): The exception.
+            typ (Type[BaseException]): The exception type.
+            value (BaseException): The exception.
             tb (TracebackType): The traceback.
         """
         self.logger.indent -= 1
@@ -741,8 +736,8 @@ class ChangeThreshold:
         Restore the threshold.
 
         Args:
-            t (Type[BaseException]): The exception type.
-            v (BaseException): The exception.
+            typ (Type[BaseException]): The exception type.
+            value (BaseException): The exception.
             tb (TracebackType): The traceback.
         """
         self.logger.threshold = self.old_level
