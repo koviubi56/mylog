@@ -1,37 +1,16 @@
-jobs:
-  include:
-    - os: linux
-      dist: precise
-    - os: linux
-      dist: trusty
-    - os: linux
-      dist: xenial
-    - os: linux
-      dist: bionic
-
-env:
-  - MY_PY_VER=3.8
-  - MY_PY_VER=3.9
-  - MY_PY_VER=3.10
-  - MY_PY_VER=3.11
+language: python
+os: linux
+dist: trusty
+python:
+  - "3.8"
+  - "3.9"
 cache: pip
 before_install:
-  - sudo apt update
-  #
-  - sudo apt install software-properties-common
-  - sudo add-apt-repository ppa:deadsnakes/ppa
-  - sudo apt update
-  #
-  - sudo apt install python$MY_PY_VER
   - python3 -m pip install --upgrade pip setuptools wheel
 install:
   - if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
-  # TODO: check if you actually need pytest!!
   - python3 -m pip install flake8 pytest safety pytest-randomly
 script:
-  - pwd
-  - ls -alF
-  - id
   - python3 -m flake8 --count --show-source --statistics --append-config ./setup.cfg
   - python3 -m pytest --ff -vv -r A -l --color=yes --code-highlight=yes --continue-on-collection-errors --doctest-modules
   - python3 -m safety check --full-report -r requirements.txt
