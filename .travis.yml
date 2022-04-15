@@ -13,6 +13,6 @@ install:
 script:
   - pwd
   - ls -alF
-  - python3 -m flake8 --count --show-source --statistics --ignore E501,N813,N802 --append-config setup.cfg
+  - python3 -m flake8 --count --show-source --statistics --ignore E501,N813,N802 --append-config ./setup.cfg
   - python3 -m pytest --ff -vv -r A -l --color=yes --code-highlight=yes --continue-on-collection-errors --doctest-modules
   - python3 -m safety check --full-report -r requirements.txt
