@@ -1,21 +1,14 @@
 import secrets
 import time
 from typing import Any, Callable
+
 import pytest
+
 import mylog
 
 mylog.root.get_child().threshold
 
-def run_100(f: Callable[..., Any]) -> Callable[..., Any]:
-    def wrapper(*args, **kwargs):
-        # for _ in range(10000):
-        for _ in range(1):
-            f(*args, **kwargs)
 
-    return wrapper
-
-
-@run_100
 def test_nolock_enter():
     nl = mylog.NoLock()
 
@@ -24,7 +17,7 @@ def test_nolock_enter():
     assert isinstance(enter_rv, bool) or enter_rv == 1
 
 
-@run_100
+
 def test_nolock_exit():
     nl = mylog.NoLock()
 
@@ -33,7 +26,7 @@ def test_nolock_exit():
     assert exit_rv is None
 
 
-@run_100
+
 def test_check_types():
     assert mylog.check_types(a=(int, 1), b=(str, "2"))
     assert mylog.check_types(
@@ -56,7 +49,7 @@ def test_check_types():
         )  # !
 
 
-@run_100
+
 def test_logger_does_not_allow_root():
     with pytest.raises(
         ValueError,
@@ -128,16 +121,7 @@ def anyting_except(exc: type) -> object:
             return bytearray(secrets.token_bytes())
 
 
-@run_100
-def test_logger_color_warns():
-    lvl = secrets.token_urlsafe()
-    with pytest.warns(
-        UserWarning, match=f"Unknown level: {repr(lvl)}"
-    ):
-        mylog.Logger._color(lvl)
 
-
-@run_100
 def test_logger_root_propagate():
     mylog.root.propagate = True
     with pytest.warns(
@@ -149,7 +133,7 @@ def test_logger_root_propagate():
     mylog.root.propagate = False
 
 
-@run_100
+
 def test_logger_get_child():
     root = mylog.root
     child = root.get_child()
@@ -262,3 +246,17 @@ class TestLoggerList:
         assert logevent.msg == stuff
         assert logevent.level == mylog.Level.critical
         assert logevent.indent == 0
+
+def test_indent():
+    mylogger = mylog.root.get_child()
+    assert mylogger.get_indent() == 0
+    with mylogger.ctxmgr:
+        assert mylogger.get_indent() == 1
+    assert mylogger.get_indent() == 0
+
+def test_change_threshold():
+    mylogger = mylog.root.get_child()
+    assert mylogger.get_effective_level() == mylog.DEFAULT_THRESHOLD
+    with mylog.ChangeThreshold(mylogger, 30):
+        assert mylogger.get_effective_level() == mylog.Level.warning
+    assert mylogger.get_effective_level() == mylog.DEFAULT_THRESHOLD
