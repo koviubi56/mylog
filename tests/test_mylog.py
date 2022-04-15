@@ -1,6 +1,4 @@
 import secrets
-import time
-from typing import Any, Callable
 
 import pytest
 
@@ -17,14 +15,12 @@ def test_nolock_enter():
     assert isinstance(enter_rv, bool) or enter_rv == 1
 
 
-
 def test_nolock_exit():
     nl = mylog.NoLock()
 
     exit_rv = nl.__exit__(None, None, None)
 
     assert exit_rv is None
-
 
 
 def test_check_types():
@@ -47,7 +43,6 @@ def test_check_types():
         mylog.check_types(
             do=(bool, False), sure=((bool, int), 6.9)
         )  # !
-
 
 
 def test_logger_does_not_allow_root():
@@ -121,7 +116,6 @@ def anyting_except(exc: type) -> object:
             return bytearray(secrets.token_bytes())
 
 
-
 def test_logger_root_propagate():
     mylog.root.propagate = True
     with pytest.warns(
@@ -131,7 +125,6 @@ def test_logger_root_propagate():
     ):
         mylog.root.debug("Test")
     mylog.root.propagate = False
-
 
 
 def test_logger_get_child():
@@ -247,12 +240,14 @@ class TestLoggerList:
         assert logevent.level == mylog.Level.critical
         assert logevent.indent == 0
 
+
 def test_indent():
     mylogger = mylog.root.get_child()
     assert mylogger.get_indent() == 0
     with mylogger.ctxmgr:
         assert mylogger.get_indent() == 1
     assert mylogger.get_indent() == 0
+
 
 def test_change_threshold():
     mylogger = mylog.root.get_child()

@@ -39,7 +39,7 @@ from typing import (
 )
 from warnings import warn
 
-import termcolor
+import termcolor  # type: ignore
 
 T = TypeVar("T")
 DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"
@@ -74,22 +74,24 @@ class Stringable(Protocol):
         ...
 
 
-Levelable = Union[Level, Stringable]
+Levelable = Union[Level, Stringable, int]
 
 
-def to_level(lvl: Levelable, int_ok: bool = False) -> Level:
+def to_level(
+    lvl: Levelable, int_ok: bool = False
+) -> Union[Level, int]:
     try:
-        return Level(lvl)
+        return Level(lvl)  # type: ignore
     except ValueError:
         try:
-            return Level(int(lvl))
+            return Level(int(lvl))  # type: ignore
         except ValueError:
             try:
-                return getattr(Level, str(lvl).lower())
+                return getattr(Level, str(lvl).lower())  # type: ignore
             except (AttributeError, ValueError):
                 with contextlib.suppress(ValueError):
                     if int_ok:
-                        return int(lvl)
+                        return int(lvl)  # type: ignore
                 raise ValueError(
                     f"Invalid level: {lvl!r}. Must be a Level, int, or str."
                 ) from None
@@ -168,7 +170,9 @@ class NoLock:
 NoneType = type(None)
 
 
-def check_types(**kwargs: Tuple[type, Any]) -> Literal[True]:
+def check_types(
+    **kwargs: Tuple[Union[type, Tuple[type, ...]], Any]
+) -> Literal[True]:
     """
     Check types.
 
@@ -187,7 +191,8 @@ def check_types(**kwargs: Tuple[type, Any]) -> Literal[True]:
  <class 'float'> (6.9)
 
     Args:
-        **kwargs (Tuple[type, Any]): The args, expected types and got values.
+        **kwargs (Tuple[Union[type, Tuple[type, ...]], Any]): The args,\
+ expected types and got values.
 
     Raises:
         TypeError: If the types are not correct.
@@ -204,8 +209,8 @@ def check_types(**kwargs: Tuple[type, Any]) -> Literal[True]:
 @dataclasses.dataclass
 class LogEvent:
     msg: str
-    level: Level
-    time: int  # ! UNIX seconds
+    level: Levelable
+    time: float  # ! UNIX seconds
     indent: int
     # // tb: bool
     frame_depth: int
@@ -223,7 +228,7 @@ class Logger:
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id == __o._id
+            return self._id == __o._id  # type: ignore
         return NotImplemented
 
     def __ne__(self, __o: object) -> bool:
@@ -231,7 +236,7 @@ class Logger:
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id != __o._id
+            return self._id != __o._id  # type: ignore
         return NotImplemented
 
     def __init__(
@@ -254,8 +259,11 @@ class Logger:
  created (internally)
         """
         check_types(
-            higher=((Logger, NoneType), higher),
-            lock=((NoneType, object), lock),  # ? Always passes?
+            higher=((Logger, NoneType), higher),  # type: ignore
+            lock=(  # type: ignore
+                (NoneType, object),
+                lock,
+            ),  # ? Always passes?
         )
         if (higher is None) and (not _allow_root):
             raise ValueError(
@@ -333,8 +341,8 @@ class Logger:
         """
         check_types(lvl=((Level, object), lvl))  # ? Always passes?
         try:
-            rv = to_level(lvl).name.upper()
-        except ValueError:
+            rv = to_level(lvl, False).name.upper()  # type: ignore
+        except (ValueError, AttributeError):
             rv = str(lvl)
 
         if rv == "WARN":
@@ -412,8 +420,8 @@ class Logger:
         )
         self.list.append(
             LogEvent(
-                msg=msg,
-                level=lvl,
+                msg=str(msg),
+                level=to_level(lvl, True),
                 time=time.time(),
                 indent=self.get_indent(),
                 frame_depth=frame_depth,
@@ -694,6 +702,7 @@ class IndentLogger:
         """
         self.logger.indent -= 1
 
+
 class ChangeThreshold:
     """Change the threshold for a logger."""
 
@@ -717,8 +726,8 @@ class ChangeThreshold:
             Level: The old threshold.
         """
         self.old_level = self.logger.threshold
-        self.logger.threshold = self.level
-        return self.old_level
+        self.logger.threshold = self.level  # type: ignore
+        return self.old_level  # type: ignore
 
     def __exit__(
         self,
@@ -735,6 +744,7 @@ class ChangeThreshold:
             tb (TracebackType): The traceback.
         """
         self.logger.threshold = self.old_level
+
 
 _allow_root = True
 root = Logger()
