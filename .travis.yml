@@ -1,6 +1,6 @@
 language: python
-os: linux
-dist: trusty
+# os: linux
+# dist: trusty
 python:
   - "3.8"
   - "3.9"
