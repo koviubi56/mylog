@@ -614,6 +614,8 @@ class Logger:
         """
         return self._get_x("threshold", DEFAULT_THRESHOLD)
 
+    get_threshold = get_effective_level
+
     def get_format(self) -> str:
         """
         Get the format.
@@ -692,6 +694,47 @@ class IndentLogger:
         """
         self.logger.indent -= 1
 
+class ChangeThreshold:
+    """Change the threshold for a logger."""
+
+    def __init__(self, logger: Logger, level: Levelable) -> None:
+        """
+        Initialize the threshold changer.
+
+        Args:
+            logger (Logger): The logger.
+            level (Levelable): The new threshold.
+        """
+        check_types(logger=(Logger, logger))
+        self.logger = logger
+        self.level = to_level(level, True)
+
+    def __enter__(self) -> Level:
+        """
+        Change the threshold.
+
+        Returns:
+            Level: The old threshold.
+        """
+        self.old_level = self.logger.threshold
+        self.logger.threshold = self.level
+        return self.old_level
+
+    def __exit__(
+        self,
+        typ: Type[BaseException],
+        value: BaseException,
+        tb: TracebackType,
+    ) -> None:
+        """
+        Restore the threshold.
+
+        Args:
+            t (Type[BaseException]): The exception type.
+            v (BaseException): The exception.
+            tb (TracebackType): The traceback.
+        """
+        self.logger.threshold = self.old_level
 
 _allow_root = True
 root = Logger()
