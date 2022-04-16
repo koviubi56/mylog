@@ -7,4 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- TODO: Make the changelog -->
+## [0.1.1] - 2022-03-27
+### Changed
+- Uncommented lots of stuff in `setup.cfg`
+- Added `.vscode` into `.gitignore`
+
+## [0.1.0] - 2022-03-27
