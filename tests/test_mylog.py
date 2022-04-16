@@ -4,8 +4,6 @@ import pytest
 
 import mylog
 
-mylog.root.get_child().threshold
-
 
 def test_nolock_enter():
     nl = mylog.NoLock()
