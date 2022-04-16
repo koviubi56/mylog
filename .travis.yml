@@ -9,11 +9,11 @@ before_install:
   - python3 -m pip install --upgrade pip setuptools wheel
 install:
   - if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
-  - python3 -m pip install flake8 pytest safety pytest-randomly pytest-cov
+  - python3 -m pip install flake8 pytest safety pytest-randomly pytest-cov coverage
 script:
   - python3 -m flake8 --count --show-source --statistics --append-config ./setup.cfg
   - python3 -m safety check --full-report -r requirements.txt
-  - python3 -m pytest --ff -vv -r A -l --color=yes --code-highlight=yes --continue-on-collection-errors --doctest-modules --cov=mylog
+  - python3 -m coverage run -m pytest --ff -vv -r A -l --color=yes --code-highlight=yes --continue-on-collection-errors --doctest-modules --cov=mylog
   # CODE COVERAGE
   - curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
   - curl -Os https://uploader.codecov.io/latest/linux/codecov
