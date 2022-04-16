@@ -15,8 +15,7 @@ script:
   - python3 -m safety check --full-report -r requirements.txt
   - python3 -m coverage run -m pytest --ff -vv -r A -l --color=yes --code-highlight=yes --continue-on-collection-errors --doctest-modules --cov=mylog
   # CODE COVERAGE
-  - coverage report -m --skip-empty --no-skip-covered | tee cov.txt
-  - ls -alF
+  - coverage xml
   - curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
   - curl -Os https://uploader.codecov.io/latest/linux/codecov
   - curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
@@ -24,4 +23,4 @@ script:
   - gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
   - shasum -a 256 -c codecov.SHA256SUM
   - chmod +x codecov
-  - ./codecov -f ./cov.txt
+  - ./codecov -f ./coverage.xml
