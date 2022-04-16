@@ -25,18 +25,8 @@ from enum import IntEnum
 from sys import _getframe, stdout
 from time import asctime
 from types import TracebackType
-from typing import (
-    IO,
-    Any,
-    List,
-    Literal,
-    Optional,
-    Protocol,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import IO, Any, List, Optional, Tuple, TypeVar, Union
+from typing_extensions import Literal, Protocol, Type
 from warnings import warn
 
 import termcolor  # type: ignore
