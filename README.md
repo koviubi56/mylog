@@ -4,6 +4,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/koviubi56/mylog/badge)](https://www.codefactor.io/repository/github/koviubi56/mylog)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/koviubi56/mylog/main.svg)](https://results.pre-commit.ci/latest/github/koviubi56/mylog/main)
 [![Build Status](https://app.travis-ci.com/koviubi56/mylog.svg?branch=main)](https://app.travis-ci.com/koviubi56/mylog)
+[![codecov](https://codecov.io/gh/koviubi56/mylog/branch/main/graph/badge.svg?token=PFHDLZJMVL)](https://codecov.io/gh/koviubi56/mylog)
 
 A simple logging library for Python.
 
