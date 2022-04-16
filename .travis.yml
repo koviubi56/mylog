@@ -10,6 +10,7 @@ before_install:
 install:
   - if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
   - python3 -m pip install flake8 pytest safety pytest-randomly coverage
+  - python3 -m pip install -e .
 script:
   - python3 -m flake8 --count --show-source --statistics --append-config ./setup.cfg
   - python3 -m safety check --full-report -r requirements.txt
