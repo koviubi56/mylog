@@ -301,7 +301,6 @@ class Logger:
             str: The colorized string.
         """
         check_types(rv=(str, rv))
-        rv = rv.strip()
         if rv == "DEBUG":
             rv = termcolor.colored("DEBUG".ljust(8), "blue")
         elif rv == "INFO":
@@ -333,7 +332,7 @@ class Logger:
         try:
             rv = to_level(lvl, False).name.upper()  # type: ignore
         except (ValueError, AttributeError):
-            rv = str(lvl)
+            rv = str(lvl).ljust(8)
 
         if rv == "WARN":
             rv = "WARNING"
