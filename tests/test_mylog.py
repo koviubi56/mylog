@@ -22,7 +22,7 @@ def _randint(a: int, b: int) -> int:
 def _randbytes(length: int) -> bytes:
     # random.randbytes is used only here,
     # so we have to use "nosec" only once
-    return secrets.SystemRandom().randbytes(length)  # nosec B311
+    return secrets.token_bytes(length)  # nosec B311
 
 
 def _randchoice(seq: Sequence[T]) -> T:

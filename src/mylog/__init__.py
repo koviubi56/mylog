@@ -25,7 +25,16 @@ from enum import IntEnum
 from sys import _getframe, exc_info, stdout
 from time import asctime
 from types import TracebackType
-from typing import IO, Any, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    IO,
+    Any,
+    List,
+    NoReturn,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 from typing_extensions import (
     Literal,
     Protocol,
@@ -158,6 +167,47 @@ class NoLock:
 NoneType = type(None)
 
 
+def _check_types_error(
+    arg: str, expected: Union[type, Tuple[type, ...]], got: Any
+) -> NoReturn:
+    raise TypeError(
+        f"{arg!r} must be type {expected!r}, got {type(got)!r}"
+        f" ({got!r})"
+    )
+
+
+def is_union(union: Any) -> bool:
+    """
+    Is `union` a Union?
+
+    >>> is_union(Union[int, str])
+    True
+
+    Args:
+        union (Any): The object to check.
+
+    Returns:
+        bool: True if `union` is a Union, False otherwise.
+    """
+    try:
+        return (
+            (type(union) is Union)
+            or (union.__origin__ is Union)
+            or (type(union))
+        )
+    except AttributeError:
+        return False
+
+
+#    Actually: Union   vvv
+#                      ~~~
+def check_union(union: Any, got: Any) -> bool:
+    try:
+        return isinstance(got, union)
+    except TypeError:
+        return any(isinstance(got, typ) for typ in union.__args__)
+
+
 def check_types(
     **kwargs: Tuple[Union[type, Tuple[type, ...]], Any]
 ) -> Literal[True]:
@@ -189,11 +239,10 @@ def check_types(
         Literal[True]: Always True.
     """
     for arg, (expected, got) in kwargs.items():
+        if is_union(expected) and check_union(expected, got):
+            continue
         if not isinstance(got, expected):
-            raise TypeError(
-                f"{arg!r} must be type {expected!r}, got {type(got)!r}"
-                f" ({got!r})"
-            )
+            _check_types_error(arg, expected, got)
     return True
 
 
