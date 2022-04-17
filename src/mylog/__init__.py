@@ -268,7 +268,7 @@ class Logger:
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id == __o._id  # type: ignore
+            return self._id == __o._id
         return NotImplemented
 
     def __ne__(self, __o: object) -> bool:
@@ -276,7 +276,7 @@ class Logger:
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id != __o._id  # type: ignore
+            return self._id != __o._id
         return NotImplemented
 
     def _inherit(self, lock: Optional[Lock]) -> None:
@@ -391,9 +391,9 @@ class Logger:
         except (ValueError, AttributeError):
             rv = str(lvl).ljust(8)
 
-        if rv == "WARN":
+        if rv == "WARN":  # pragma: no cover
             rv = "WARNING"
-        if rv == "FATAL":
+        if rv == "FATAL":  # pragma: no cover
             rv = "CRITICAL"
 
         if self.colors:
@@ -693,8 +693,6 @@ class IndentLogger:
         Returns:
             int: The logger's indent
         """
-        if self.logger.indent is None:
-            self.logger.indent = self.logger.get_indent()
         self.logger.indent += 1
         return self.logger.indent
 

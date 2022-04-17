@@ -40,7 +40,7 @@ def _random_int(
     rv = _randint(0, 100)
     if only_if(rv):
         return rv
-    return _random_int(neg_ok, only_if=only_if)
+    return _random_int(neg_ok, only_if=only_if)  # pragma: no cover
 
 
 def _random_bytes(
@@ -49,7 +49,7 @@ def _random_bytes(
     rv = _randbytes(_random_int(False))
     if only_if(rv):
         return rv
-    return _random_bytes(only_if=only_if)
+    return _random_bytes(only_if=only_if)  # pragma: no cover
 
 
 def _random_urlsafe(
@@ -59,7 +59,7 @@ def _random_urlsafe(
     rv = base64.urlsafe_b64encode(tok).rstrip(b"=").decode("ascii")
     if only_if(rv):
         return rv
-    return _random_urlsafe(only_if=only_if)
+    return _random_urlsafe(only_if=only_if)  # pragma: no cover
 
 
 def _random_nonlevel_int(
@@ -71,7 +71,7 @@ def _random_nonlevel_int(
     )
     if only_if(rv):
         return rv
-    return _random_nonlevel_int(only_if=only_if)
+    return _random_nonlevel_int(only_if=only_if)  # pragma: no cover
 
 
 def _random_level() -> Tuple[
@@ -86,10 +86,6 @@ def _random_level() -> Tuple[
     elif _to == "str":
         return lvl.name, lvl
     # else is not needed
-
-
-def _random_bool() -> bool:
-    return _randchoice((True, False))
 
 
 def random_anything(
@@ -107,7 +103,7 @@ def random_anything(
     # else is not needed
     if only_if(rv):
         return rv
-    return random_anything(only_if=only_if)
+    return random_anything(only_if=only_if)  # pragma: no cover
 
 
 def x_is_y(x: object, y: object) -> bool:
@@ -138,7 +134,7 @@ def speed() -> float:
 
 
 def skip_if_slow():
-    if (spd := speed()) >= 1:
+    if (spd := speed()) >= 1:  # pragma: no cover
         pytest.skip(
             f"This computer is too slow. A few simple stuff took {spd}"
             " seconds, while it should be less then one second."
@@ -311,7 +307,7 @@ def test_to_level():
     assert mylog.to_level(nli, True) == nli
 
 
-def tets_nolock():
+def test_nolock():
     nolock = mylog.NoLock()
 
     assert nolock.__enter__() in {True, False, 1}
@@ -352,6 +348,7 @@ class TestLogger:
         assert x_equals_y(l1, l2)
         assert x_equals_y(l2, l1)
         assert x_equals_y(mylog.root, mylog.root)
+        assert l1.__eq__(object()) == NotImplemented
 
     @staticmethod
     def test_ne():
@@ -359,9 +356,16 @@ class TestLogger:
         l2 = mylog.root.get_child()
         assert x_not_equals_y(l1, l2)
         assert x_not_equals_y(l2, l1)
+        assert l1.__ne__(object()) == NotImplemented
 
     @staticmethod
     def test_init():
+        with pytest.raises(
+            ValueError,
+            match="Cannot create a new logger: Root logger already exists",
+        ):
+            mylog.Logger(higher=None)
+
         lock = mylog.NoLock()
         # Don't set `_allow_root` in production code
         mylog._allow_root = True
@@ -514,6 +518,15 @@ class TestLogger:
         # Since propagate is True, Logger._log() will automatically add one to
         # the frame_depth, if logging is done by the parent.
 
+        with pytest.warns(
+            UserWarning, match="Root logger should not propagate"
+        ):
+            mylog.root.propagate = True
+            mylog.root._log(
+                _random_level()[0], random_anything(), False, 2
+            )
+            mylog.root.propagate = False
+
     @staticmethod
     def test_log_no_propagate():
         logger = mylog.root
@@ -614,11 +627,35 @@ class TestLogger:
         assert logger.is_enabled_for(mylog.Level.critical)
 
         logger.threshold = mylog.Level.critical
+        # -
+        logger.list = []
+        logger.debug(random_anything())
+        assert not logger.list
+        # -
         assert not logger.is_enabled_for(mylog.Level.debug)
         assert not logger.is_enabled_for(mylog.Level.info)
         assert not logger.is_enabled_for(mylog.Level.warning)
         assert not logger.is_enabled_for(mylog.Level.error)
         assert logger.is_enabled_for(mylog.Level.critical)
+
+        logger.threshold = "fatal"
+        with pytest.warns(UserWarning, match="Logger threshold should be a Level"):
+            logger.is_enabled_for(mylog.Level.critical)
+
+    @staticmethod
+    def test_enabled():
+        logger = mylog.root.get_child()
+        logger.critical(random_anything())
+        assert logger.list
+        logger.list = []
+
+        logger.enabled = False
+        logger.critical(random_anything())
+        assert not logger.list
+
+        logger.enabled = True
+        logger.critical(random_anything())
+        assert logger.list
 
 
 def test_indent_logger():
