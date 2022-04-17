@@ -311,7 +311,7 @@ def test_nolock():
     nolock = mylog.NoLock()
 
     assert nolock.__enter__() in {True, False, 1}
-    assert nolock.__exit__() is None
+    assert nolock.__exit__(None, None, None) is None
 
 
 def test_nonetype():
@@ -639,7 +639,9 @@ class TestLogger:
         assert logger.is_enabled_for(mylog.Level.critical)
 
         logger.threshold = "fatal"
-        with pytest.warns(UserWarning, match="Logger threshold should be a Level"):
+        with pytest.warns(
+            UserWarning, match="Logger threshold should be a Level"
+        ):
             logger.is_enabled_for(mylog.Level.critical)
 
     @staticmethod
