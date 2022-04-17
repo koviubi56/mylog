@@ -22,7 +22,7 @@ import time
 import traceback
 import uuid
 from enum import IntEnum
-from sys import _getframe, stdout
+from sys import _getframe, exc_info, stdout
 from time import asctime
 from types import TracebackType
 from typing import IO, Any, List, Optional, Tuple, TypeVar, Union
@@ -377,15 +377,27 @@ class Logger:
             tb=(bool, tb),
             frame_depth=(int, frame_depth),
         )
+        _indent = "  " * self.indent
+        _lvl = self.level_to_str(lvl)
+        _time = str(asctime())
+        _line = str(_getframe(frame_depth).f_lineno).zfill(5)
+        _msg = str(msg)
+        if (tb) and (exc_info() == (None, None, None)):
+            warn(
+                "No traceback available, but tb=True",
+                UserWarning,
+                frame_depth - 1,
+            )
+        _tb = ("\n" + traceback.format_exc()) if tb else ""
         return (
             self.format.format(
-                indent="  " * self.indent,
-                lvl=self.level_to_str(lvl),
-                time=str(asctime()),
-                line=str(_getframe(frame_depth).f_lineno).zfill(5),
-                msg=str(msg),
+                indent=_indent,
+                lvl=_lvl,
+                time=_time,
+                line=_line,
+                msg=_msg,
             )
-            + (("\n" + traceback.format_exc()) if tb else "")
+            + _tb
             + "\n"
         )
 
@@ -601,6 +613,14 @@ class Logger:
         """
         check_types(lvl=(Levelable, lvl))
         lvl = to_level(lvl, True)
+        if not isinstance(self.threshold, Level):
+            warn(
+                "Logger threshold should be a Level, not"
+                f" {type(self.threshold)!r} ({self.threshold!r})."
+                " Converting threshold...",
+                UserWarning,
+            )
+            self.threshold = to_level(self.threshold, True)
         return lvl >= self.threshold
 
 
