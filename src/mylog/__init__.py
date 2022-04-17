@@ -569,7 +569,7 @@ class Logger:
         # (That's why we have `._inherit`)
         cls: Type[Logger] = type(self)
         rv = cls(self)
-        rv._inherit()
+        rv._inherit(None)
         return rv
 
     def is_enabled_for(self, lvl: Levelable) -> bool:
