@@ -29,7 +29,7 @@ from typing import IO, Any, List, Optional, Tuple, TypeVar, Union
 from typing_extensions import Literal, Protocol, Type
 from warnings import warn
 
-import termcolor  # type: ignore
+import termcolor
 
 __version__ = "0.1.1"
 
@@ -58,7 +58,6 @@ class Stringable(Protocol):
 
     def __str__(self) -> str:
         """Return the string representation of the object."""
-        ...
 
 
 Levelable = Union[Level, Stringable, int]
@@ -74,7 +73,7 @@ def to_level(
             return Level(int(lvl))  # type: ignore
         except ValueError:
             try:
-                return getattr(Level, str(lvl).lower())  # type: ignore
+                return getattr(Level, str(lvl))  # type: ignore
             except (AttributeError, ValueError):
                 with contextlib.suppress(ValueError):
                     if int_ok:
@@ -97,7 +96,6 @@ class Lock(Protocol):
             blocking (bool, optional): Defaults to True.
             timeout (float, optional): Defaults to -1.
         """
-        ...
 
     def __exit__(
         self,
@@ -113,7 +111,6 @@ class Lock(Protocol):
             value (BaseException): The exception.
             tb (TracebackType): The traceback.
         """
-        ...
 
 
 class NoLock:
@@ -208,7 +205,7 @@ class Logger:
  logger, or the root logger's get_child"""
 
     colors: bool = True
-    # ↳ Should level_to_str use colors? Should be set manually.
+    # ↪ Should level_to_str use colors? Should be set manually.
 
     def __eq__(self, __o: object) -> bool:
         # sourcery skip: assign-if-exp, reintroduce-else
@@ -225,6 +222,22 @@ class Logger:
         ):
             return self._id != __o._id  # type: ignore
         return NotImplemented
+
+    def _inherit(self, lock: Optional[Lock]) -> None:
+        # Made a separate function so it can be overwritten
+
+        # These (in my opinion) should not be inherited.
+        self.propagate = False
+        self._id = uuid.uuid4()  # Only used for ==, !=
+        self.lock = lock or threading.Lock()
+        self.list: List[LogEvent] = []
+        self.indent = 0  # Should be set manually
+        self.enabled: bool = True
+
+        # These (in my opinion) should be inherited.
+        self.format: str = self.higher.format
+        self.threshold: Level = self.higher.threshold
+        self.stream: IO[str] = self.higher.stream
 
     def __init__(
         self,
@@ -258,33 +271,23 @@ class Logger:
                 " exists. Use that, or make a child logger from the root"
                 " one."
             )
-        # ! Note that these (with the exception of propagate, higher and
-        # ! lock) should be accessed with their method (get_*)!
-        # * If you think that we should make these (with the exceptions)
-        # * properties, then you're wrong. Only make an issue/send a pr if you
-        # * have a good reason.
+        if higher is not None:
+            self.higher = higher
+            # Made a separate function so it can be overwritten
+            self._inherit(lock)
+            return
         self.higher = higher
         self.propagate = False  # ! Root logger should not propagate!
         self.lock = lock or threading.Lock()
         self.list: List[LogEvent] = []
+        self.indent = 0  # Should be set manually
+        self.format: str = DEFAULT_FORMAT
+        self.threshold: Level = DEFAULT_THRESHOLD
+        self.enabled: bool = True
+        self.stream: IO[str] = stdout
         self._id = uuid.uuid4()  # Only used for ==, !=
 
-        if higher is None:
-            self.format: Optional[str] = DEFAULT_FORMAT
-            self.threshold: Optional[Level] = DEFAULT_THRESHOLD
-            self.enabled: Optional[bool] = True
-            self.stream: Optional[IO[str]] = stdout
-            self.indent = 0  # Should be set manually
-        else:
-            self.format: Optional[str] = None  # type: ignore
-            self.threshold: Optional[Level] = None  # type: ignore
-            self.enabled: Optional[bool] = None  # type: ignore
-            self.stream: Optional[IO[str]] = None  # type: ignore
-            self.indent = None  # type: ignore
-
-        self.ctxmgr = IndentLogger(
-            self
-        )  # None of the above rules apply to this; use this directly
+        self.ctxmgr = IndentLogger(self)
 
     @staticmethod
     def _color(rv: str) -> str:
@@ -368,8 +371,8 @@ class Logger:
             frame_depth=(int, frame_depth),
         )
         return (
-            self.get_format().format(
-                indent="  " * self.get_indent(),
+            self.format.format(
+                indent="  " * self.indent,
                 lvl=self.level_to_str(lvl),
                 time=str(asctime()),
                 line=str(_getframe(frame_depth).f_lineno).zfill(5),
@@ -410,15 +413,15 @@ class Logger:
                 msg=str(msg),
                 level=to_level(lvl, True),
                 time=time.time(),
-                indent=self.get_indent(),
+                indent=self.indent,
                 frame_depth=frame_depth,
             )
         )
         with self.lock:
-            rv = self.get_stream().write(
+            rv = self.stream.write(
                 self.format_msg(lvl, msg, tb, frame_depth)
             )
-        self.get_stream().flush()
+        self.stream.flush()
         return rv
 
     def _log(
@@ -450,7 +453,7 @@ class Logger:
             frame_depth=(int, frame_depth),
         )
         # Check if enabled
-        if self.get_enabled():
+        if self.enabled:
             # Check if we should log it
             if self.propagate:
                 # Check if we are root
@@ -561,8 +564,13 @@ class Logger:
         Returns:
             Logger: The child logger.
         """
+        # This function should be short, so if the user doesn't like it, it
+        # can be copy-pasted, and the user can change it.
+        # (That's why we have `._inherit`)
         cls: Type[Logger] = type(self)
-        return cls(self)
+        rv = cls(self)
+        rv._inherit()
+        return rv
 
     def is_enabled_for(self, lvl: Levelable) -> bool:
         """
@@ -576,76 +584,7 @@ class Logger:
         """
         check_types(lvl=((Level, object), lvl))  # ? Always passes?
         lvl = to_level(lvl, True)
-        return lvl >= self.get_effective_level()
-
-    def _get_x(self, attr: str, default: T) -> Union[T, Any]:
-        """
-        Get an attribute.
-
-        Args:
-            attr (str): The attribute to get.
-            default (T): The default value.
-
-        Returns:
-            Union[T, Any]: The attribute.
-        """
-        check_types(
-            attr=(str, attr),
-            default=(object, default),
-        )
-        if getattr(self, attr, None) is None:
-            if self.higher is None:
-                return default
-            return self.higher._get_x(attr, default)
-        rv = getattr(self, attr)
-        return rv
-
-    def get_effective_level(self) -> Level:
-        """
-        Get the effective level (threshold).
-
-        Returns:
-            Level: The effective level.
-        """
-        return self._get_x("threshold", DEFAULT_THRESHOLD)
-
-    get_threshold = get_effective_level
-
-    def get_format(self) -> str:
-        """
-        Get the format.
-
-        Returns:
-            str: The format.
-        """
-        return self._get_x("format", DEFAULT_FORMAT)
-
-    def get_enabled(self) -> bool:
-        """
-        Get the enabled state.
-
-        Returns:
-            bool: Whether the logger is enabled.
-        """
-        return self._get_x("enabled", True)
-
-    def get_stream(self) -> IO[str]:
-        """
-        Get the stream.
-
-        Returns:
-            IO[str]: The stream.
-        """
-        return self._get_x("stream", stdout)
-
-    def get_indent(self) -> int:
-        """
-        Get the indent.
-
-        Returns:
-            int: The indent.
-        """
-        return self._get_x("indent", 0)
+        return lvl >= self.threshold
 
 
 class IndentLogger:
@@ -714,7 +653,7 @@ class ChangeThreshold:
         """
         self.old_level = self.logger.threshold
         self.logger.threshold = self.level  # type: ignore
-        return self.old_level  # type: ignore
+        return self.old_level
 
     def __exit__(
         self,
