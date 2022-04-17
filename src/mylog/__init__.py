@@ -26,7 +26,12 @@ from sys import _getframe, stdout
 from time import asctime
 from types import TracebackType
 from typing import IO, Any, List, Optional, Tuple, TypeVar, Union
-from typing_extensions import Literal, Protocol, Type
+from typing_extensions import (
+    Literal,
+    Protocol,
+    Type,
+    runtime_checkable,
+)
 from warnings import warn
 
 import termcolor
@@ -53,6 +58,7 @@ class Level(IntEnum):
 DEFAULT_THRESHOLD = Level.warning
 
 
+@runtime_checkable
 class Stringable(Protocol):
     """Protocol for stringable objects."""
 
@@ -83,6 +89,7 @@ def to_level(
                 ) from None
 
 
+@runtime_checkable
 class Lock(Protocol):
     """Protocol for locks that are needed by the logger."""
 
@@ -225,6 +232,7 @@ class Logger:
 
     def _inherit(self, lock: Optional[Lock]) -> None:
         # Made a separate function so it can be overwritten
+        check_types(lock=((NoneType, Lock), lock))
 
         # These (in my opinion) should not be inherited.
         self.propagate = False
@@ -259,11 +267,11 @@ class Logger:
  created (internally)
         """
         check_types(
-            higher=((Logger, NoneType), higher),  # type: ignore
-            lock=(  # type: ignore
-                (NoneType, object),
+            higher=((Logger, NoneType), higher),
+            lock=(
+                (NoneType, Lock),
                 lock,
-            ),  # ? Always passes?
+            ),
         )
         if (higher is None) and (not _allow_root):
             raise ValueError(
@@ -328,7 +336,7 @@ class Logger:
         Returns:
             str: The string.
         """
-        check_types(lvl=((Level, object), lvl))  # ? Always passes?
+        check_types(lvl=(Levelable, lvl))
         try:
             rv = to_level(lvl, False).name.upper()  # type: ignore
         except (ValueError, AttributeError):
@@ -364,8 +372,8 @@ class Logger:
             str: The formatted message.
         """
         check_types(
-            lvl=((Level, object), lvl),  # ? Always passes?
-            msg=(str, msg),
+            lvl=(Levelable, lvl),
+            msg=(Stringable, msg),
             tb=(bool, tb),
             frame_depth=(int, frame_depth),
         )
@@ -403,8 +411,8 @@ class Logger:
             int: The number of characters written.
         """
         check_types(
-            lvl=((Level, object), lvl),  # ? Always passes?
-            msg=(str, msg),
+            lvl=(Levelable, lvl),
+            msg=(Stringable, msg),
             frame_depth=(int, frame_depth),
         )
         self.list.append(
@@ -446,8 +454,8 @@ class Logger:
             int: The number of characters written.
         """
         check_types(
-            lvl=((Level, object), lvl),  # ? Always passes?
-            msg=(str, msg),
+            lvl=(Levelable, lvl),
+            msg=(Stringable, msg),
             traceback=(bool, traceback),
             frame_depth=(int, frame_depth),
         )
@@ -489,7 +497,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.debug, msg, traceback, 4)
 
     def info(self, msg: Stringable, traceback: bool = False) -> int:
@@ -504,7 +514,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.info, msg, traceback, 4)
 
     def warning(
@@ -521,7 +533,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.warning, msg, traceback, 4)
 
     def error(self, msg: Stringable, traceback: bool = False) -> int:
@@ -536,7 +550,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.error, msg, traceback, 4)
 
     def critical(
@@ -553,7 +569,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.critical, msg, traceback, 4)
 
     def get_child(self) -> "Logger":
@@ -581,7 +599,7 @@ class Logger:
         Returns:
             bool: Whether the logger is enabled for the given level.
         """
-        check_types(lvl=((Level, object), lvl))  # ? Always passes?
+        check_types(lvl=(Levelable, lvl))
         lvl = to_level(lvl, True)
         return lvl >= self.threshold
 
@@ -639,7 +657,7 @@ class ChangeThreshold:
             logger (Logger): The logger.
             level (Levelable): The new threshold.
         """
-        check_types(logger=(Logger, logger))
+        check_types(logger=(Logger, logger), level=(Levelable, level))
         self.logger = logger
         self.level = to_level(level, True)
 
