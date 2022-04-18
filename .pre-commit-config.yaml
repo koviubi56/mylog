@@ -70,6 +70,6 @@ repos:
     hooks:
       - id: yesqa
   - repo: https://github.com/regebro/pyroma
-    rev: "3.2"
+    rev: "4.0"
     hooks:
       - id: pyroma
