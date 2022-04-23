@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.1] - 2022-03-27
+## [0.2.0-beta.1] - 2022-04-22
+
+### Added
+
+- **A `UserWarning` is issued, if a log function is called with `traceback=True` (or `tb=True`) but there's _no_ exception.**
+- **`Logger.is_enabled_for` issues a `UserWarning`, if `Logger.threshold` is not a `Level`, and it tries to convert it.**
+
 ### Changed
+
+- **Changed how inheritence works**
+- Protocols are now runtime checkable.
+
+### Removed
+
+- **! Because inheritence changed, most of the `get_*` methods were _removed_.**
+
+## [0.1.1] - 2022-03-27
+
+### Changed
+
 - Uncommented lots of stuff in `setup.cfg`
 - Added `.vscode` into `.gitignore`
 

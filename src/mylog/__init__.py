@@ -22,16 +22,30 @@ import time
 import traceback
 import uuid
 from enum import IntEnum
-from sys import _getframe, stdout
+from sys import _getframe, exc_info, stdout
 from time import asctime
 from types import TracebackType
-from typing import IO, Any, List, Optional, Tuple, TypeVar, Union
-from typing_extensions import Literal, Protocol, Type
+from typing import (
+    IO,
+    Any,
+    List,
+    NoReturn,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
+from typing_extensions import (
+    Literal,
+    Protocol,
+    Type,
+    runtime_checkable,
+)
 from warnings import warn
 
-import termcolor  # type: ignore
+import termcolor
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 T = TypeVar("T")
 DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"
@@ -53,12 +67,12 @@ class Level(IntEnum):
 DEFAULT_THRESHOLD = Level.warning
 
 
+@runtime_checkable
 class Stringable(Protocol):
     """Protocol for stringable objects."""
 
     def __str__(self) -> str:
         """Return the string representation of the object."""
-        ...
 
 
 Levelable = Union[Level, Stringable, int]
@@ -74,7 +88,7 @@ def to_level(
             return Level(int(lvl))  # type: ignore
         except ValueError:
             try:
-                return getattr(Level, str(lvl).lower())  # type: ignore
+                return getattr(Level, str(lvl))  # type: ignore
             except (AttributeError, ValueError):
                 with contextlib.suppress(ValueError):
                     if int_ok:
@@ -84,6 +98,7 @@ def to_level(
                 ) from None
 
 
+@runtime_checkable
 class Lock(Protocol):
     """Protocol for locks that are needed by the logger."""
 
@@ -97,7 +112,6 @@ class Lock(Protocol):
             blocking (bool, optional): Defaults to True.
             timeout (float, optional): Defaults to -1.
         """
-        ...
 
     def __exit__(
         self,
@@ -113,7 +127,6 @@ class Lock(Protocol):
             value (BaseException): The exception.
             tb (TracebackType): The traceback.
         """
-        ...
 
 
 class NoLock:
@@ -154,6 +167,46 @@ class NoLock:
 NoneType = type(None)
 
 
+def _check_types_error(
+    arg: str, expected: Union[type, Tuple[type, ...]], got: Any
+) -> NoReturn:
+    raise TypeError(
+        f"{arg!r} must be type {expected!r}, got {type(got)!r}"
+        f" ({got!r})"
+    )
+
+
+def is_union(union: Any) -> bool:
+    """
+    Is `union` a Union?
+
+    >>> is_union(Union[int, str])
+    True
+
+    Args:
+        union (Any): The object to check.
+
+    Returns:
+        bool: True if `union` is a Union, False otherwise.
+    """
+    try:
+        return (
+            (type(union) is Union)
+            or (union.__origin__ is Union)
+        )
+    except AttributeError:
+        return False
+
+
+#    Actually: Union   vvv
+#                      ~~~
+def check_union(union: Any, got: Any) -> bool:
+    try:
+        return isinstance(got, union)
+    except TypeError:
+        return any(isinstance(got, typ) for typ in union.__args__)
+
+
 def check_types(
     **kwargs: Tuple[Union[type, Tuple[type, ...]], Any]
 ) -> Literal[True]:
@@ -185,11 +238,10 @@ def check_types(
         Literal[True]: Always True.
     """
     for arg, (expected, got) in kwargs.items():
+        if is_union(expected) and check_union(expected, got):
+            continue
         if not isinstance(got, expected):
-            raise TypeError(
-                f"{arg!r} must be type {expected!r}, got {type(got)!r}"
-                f" ({got!r})"
-            )
+            _check_types_error(arg, expected, got)
     return True
 
 
@@ -208,14 +260,14 @@ class Logger:
  logger, or the root logger's get_child"""
 
     colors: bool = True
-    # ↳ Should level_to_str use colors? Should be set manually.
+    # ↪ Should level_to_str use colors? Should be set manually.
 
     def __eq__(self, __o: object) -> bool:
         # sourcery skip: assign-if-exp, reintroduce-else
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id == __o._id  # type: ignore
+            return self._id == __o._id
         return NotImplemented
 
     def __ne__(self, __o: object) -> bool:
@@ -223,8 +275,25 @@ class Logger:
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id != __o._id  # type: ignore
+            return self._id != __o._id
         return NotImplemented
+
+    def _inherit(self, lock: Optional[Lock]) -> None:
+        # Made a separate function so it can be overwritten
+        check_types(lock=((NoneType, Lock), lock))
+
+        # These (in my opinion) should not be inherited.
+        self.propagate = False
+        self._id = uuid.uuid4()  # Only used for ==, !=
+        self.lock = lock or threading.Lock()
+        self.list: List[LogEvent] = []
+        self.indent = 0  # Should be set manually
+        self.enabled: bool = True
+
+        # These (in my opinion) should be inherited.
+        self.format: str = self.higher.format
+        self.threshold: Level = self.higher.threshold
+        self.stream: IO[str] = self.higher.stream
 
     def __init__(
         self,
@@ -246,11 +315,11 @@ class Logger:
  created (internally)
         """
         check_types(
-            higher=((Logger, NoneType), higher),  # type: ignore
-            lock=(  # type: ignore
-                (NoneType, object),
+            higher=((Logger, NoneType), higher),
+            lock=(
+                (NoneType, Lock),
                 lock,
-            ),  # ? Always passes?
+            ),
         )
         if (higher is None) and (not _allow_root):
             raise ValueError(
@@ -258,33 +327,23 @@ class Logger:
                 " exists. Use that, or make a child logger from the root"
                 " one."
             )
-        # ! Note that these (with the exception of propagate, higher and
-        # ! lock) should be accessed with their method (get_*)!
-        # * If you think that we should make these (with the exceptions)
-        # * properties, then you're wrong. Only make an issue/send a pr if you
-        # * have a good reason.
+        if higher is not None:
+            self.higher = higher
+            # Made a separate function so it can be overwritten
+            self._inherit(lock)
+            return
         self.higher = higher
         self.propagate = False  # ! Root logger should not propagate!
         self.lock = lock or threading.Lock()
         self.list: List[LogEvent] = []
+        self.indent = 0  # Should be set manually
+        self.format: str = DEFAULT_FORMAT
+        self.threshold: Level = DEFAULT_THRESHOLD
+        self.enabled: bool = True
+        self.stream: IO[str] = stdout
         self._id = uuid.uuid4()  # Only used for ==, !=
 
-        if higher is None:
-            self.format: Optional[str] = DEFAULT_FORMAT
-            self.threshold: Optional[Level] = DEFAULT_THRESHOLD
-            self.enabled: Optional[bool] = True
-            self.stream: Optional[IO[str]] = stdout
-            self.indent = 0  # Should be set manually
-        else:
-            self.format: Optional[str] = None  # type: ignore
-            self.threshold: Optional[Level] = None  # type: ignore
-            self.enabled: Optional[bool] = None  # type: ignore
-            self.stream: Optional[IO[str]] = None  # type: ignore
-            self.indent = None  # type: ignore
-
-        self.ctxmgr = IndentLogger(
-            self
-        )  # None of the above rules apply to this; use this directly
+        self.ctxmgr = IndentLogger(self)
 
     @staticmethod
     def _color(rv: str) -> str:
@@ -298,7 +357,6 @@ class Logger:
             str: The colorized string.
         """
         check_types(rv=(str, rv))
-        rv = rv.strip()
         if rv == "DEBUG":
             rv = termcolor.colored("DEBUG".ljust(8), "blue")
         elif rv == "INFO":
@@ -326,15 +384,15 @@ class Logger:
         Returns:
             str: The string.
         """
-        check_types(lvl=((Level, object), lvl))  # ? Always passes?
+        check_types(lvl=(Levelable, lvl))
         try:
             rv = to_level(lvl, False).name.upper()  # type: ignore
         except (ValueError, AttributeError):
-            rv = str(lvl)
+            rv = str(lvl).ljust(8)
 
-        if rv == "WARN":
+        if rv == "WARN":  # pragma: no cover
             rv = "WARNING"
-        if rv == "FATAL":
+        if rv == "FATAL":  # pragma: no cover
             rv = "CRITICAL"
 
         if self.colors:
@@ -362,20 +420,32 @@ class Logger:
             str: The formatted message.
         """
         check_types(
-            lvl=((Level, object), lvl),  # ? Always passes?
-            msg=(str, msg),
+            lvl=(Levelable, lvl),
+            msg=(Stringable, msg),
             tb=(bool, tb),
             frame_depth=(int, frame_depth),
         )
-        return (
-            self.get_format().format(
-                indent="  " * self.get_indent(),
-                lvl=self.level_to_str(lvl),
-                time=str(asctime()),
-                line=str(_getframe(frame_depth).f_lineno).zfill(5),
-                msg=str(msg),
+        _indent = "  " * self.indent
+        _lvl = self.level_to_str(lvl)
+        _time = str(asctime())
+        _line = str(_getframe(frame_depth).f_lineno).zfill(5)
+        _msg = str(msg)
+        if (tb) and (exc_info() == (None, None, None)):
+            warn(
+                "No traceback available, but tb=True",
+                UserWarning,
+                frame_depth - 1,
             )
-            + (("\n" + traceback.format_exc()) if tb else "")
+        _tb = ("\n" + traceback.format_exc()) if tb else ""
+        return (
+            self.format.format(
+                indent=_indent,
+                lvl=_lvl,
+                time=_time,
+                line=_line,
+                msg=_msg,
+            )
+            + _tb
             + "\n"
         )
 
@@ -401,8 +471,8 @@ class Logger:
             int: The number of characters written.
         """
         check_types(
-            lvl=((Level, object), lvl),  # ? Always passes?
-            msg=(str, msg),
+            lvl=(Levelable, lvl),
+            msg=(Stringable, msg),
             frame_depth=(int, frame_depth),
         )
         self.list.append(
@@ -410,15 +480,15 @@ class Logger:
                 msg=str(msg),
                 level=to_level(lvl, True),
                 time=time.time(),
-                indent=self.get_indent(),
+                indent=self.indent,
                 frame_depth=frame_depth,
             )
         )
         with self.lock:
-            rv = self.get_stream().write(
+            rv = self.stream.write(
                 self.format_msg(lvl, msg, tb, frame_depth)
             )
-        self.get_stream().flush()
+        self.stream.flush()
         return rv
 
     def _log(
@@ -444,13 +514,13 @@ class Logger:
             int: The number of characters written.
         """
         check_types(
-            lvl=((Level, object), lvl),  # ? Always passes?
-            msg=(str, msg),
+            lvl=(Levelable, lvl),
+            msg=(Stringable, msg),
             traceback=(bool, traceback),
             frame_depth=(int, frame_depth),
         )
         # Check if enabled
-        if self.get_enabled():
+        if self.enabled:
             # Check if we should log it
             if self.propagate:
                 # Check if we are root
@@ -487,7 +557,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.debug, msg, traceback, 4)
 
     def info(self, msg: Stringable, traceback: bool = False) -> int:
@@ -502,7 +574,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.info, msg, traceback, 4)
 
     def warning(
@@ -519,7 +593,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.warning, msg, traceback, 4)
 
     def error(self, msg: Stringable, traceback: bool = False) -> int:
@@ -534,7 +610,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.error, msg, traceback, 4)
 
     def critical(
@@ -551,7 +629,9 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(str, msg), traceback=(bool, traceback))
+        check_types(
+            msg=(Stringable, msg), traceback=(bool, traceback)
+        )
         return self._log(Level.critical, msg, traceback, 4)
 
     def get_child(self) -> "Logger":
@@ -561,8 +641,13 @@ class Logger:
         Returns:
             Logger: The child logger.
         """
+        # This function should be short, so if the user doesn't like it, it
+        # can be copy-pasted, and the user can change it.
+        # (That's why we have `._inherit`)
         cls: Type[Logger] = type(self)
-        return cls(self)
+        rv = cls(self)
+        rv._inherit(None)
+        return rv
 
     def is_enabled_for(self, lvl: Levelable) -> bool:
         """
@@ -574,78 +659,17 @@ class Logger:
         Returns:
             bool: Whether the logger is enabled for the given level.
         """
-        check_types(lvl=((Level, object), lvl))  # ? Always passes?
+        check_types(lvl=(Levelable, lvl))
         lvl = to_level(lvl, True)
-        return lvl >= self.get_effective_level()
-
-    def _get_x(self, attr: str, default: T) -> Union[T, Any]:
-        """
-        Get an attribute.
-
-        Args:
-            attr (str): The attribute to get.
-            default (T): The default value.
-
-        Returns:
-            Union[T, Any]: The attribute.
-        """
-        check_types(
-            attr=(str, attr),
-            default=(object, default),
-        )
-        if getattr(self, attr, None) is None:
-            if self.higher is None:
-                return default
-            return self.higher._get_x(attr, default)
-        rv = getattr(self, attr)
-        return rv
-
-    def get_effective_level(self) -> Level:
-        """
-        Get the effective level (threshold).
-
-        Returns:
-            Level: The effective level.
-        """
-        return self._get_x("threshold", DEFAULT_THRESHOLD)
-
-    get_threshold = get_effective_level
-
-    def get_format(self) -> str:
-        """
-        Get the format.
-
-        Returns:
-            str: The format.
-        """
-        return self._get_x("format", DEFAULT_FORMAT)
-
-    def get_enabled(self) -> bool:
-        """
-        Get the enabled state.
-
-        Returns:
-            bool: Whether the logger is enabled.
-        """
-        return self._get_x("enabled", True)
-
-    def get_stream(self) -> IO[str]:
-        """
-        Get the stream.
-
-        Returns:
-            IO[str]: The stream.
-        """
-        return self._get_x("stream", stdout)
-
-    def get_indent(self) -> int:
-        """
-        Get the indent.
-
-        Returns:
-            int: The indent.
-        """
-        return self._get_x("indent", 0)
+        if not isinstance(self.threshold, Level):
+            warn(
+                "Logger threshold should be a Level, not"
+                f" {type(self.threshold)!r} ({self.threshold!r})."
+                " Converting threshold...",
+                UserWarning,
+            )
+            self.threshold = to_level(self.threshold, True)
+        return lvl >= self.threshold
 
 
 class IndentLogger:
@@ -668,8 +692,6 @@ class IndentLogger:
         Returns:
             int: The logger's indent
         """
-        if self.logger.indent is None:
-            self.logger.indent = self.logger.get_indent()
         self.logger.indent += 1
         return self.logger.indent
 
@@ -701,7 +723,7 @@ class ChangeThreshold:
             logger (Logger): The logger.
             level (Levelable): The new threshold.
         """
-        check_types(logger=(Logger, logger))
+        check_types(logger=(Logger, logger), level=(Levelable, level))
         self.logger = logger
         self.level = to_level(level, True)
 
@@ -714,7 +736,7 @@ class ChangeThreshold:
         """
         self.old_level = self.logger.threshold
         self.logger.threshold = self.level  # type: ignore
-        return self.old_level  # type: ignore
+        return self.old_level
 
     def __exit__(
         self,
