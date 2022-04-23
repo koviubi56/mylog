@@ -89,7 +89,7 @@ def _random_level() -> Tuple[
 
 
 def random_anything(
-    *, only_if: Callable[[int], bool] = lambda _: True
+    *, only_if: Callable[[Union[bytes, int, str]], bool] = lambda _: True
 ) -> Union[str, bytes, int]:
     rt = _randchoice(("hex", "bytes", "urlsafe", "int"))
     if rt == "hex":
