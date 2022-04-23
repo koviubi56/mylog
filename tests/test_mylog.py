@@ -53,7 +53,7 @@ def _random_bytes(
 
 
 def _random_urlsafe(
-    *, only_if: Callable[[int], bool] = lambda _: True
+    *, only_if: Callable[[str], bool] = lambda _: True
 ) -> str:
     tok = _random_bytes()
     rv = base64.urlsafe_b64encode(tok).rstrip(b"=").decode("ascii")
