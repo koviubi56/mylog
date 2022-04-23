@@ -44,7 +44,7 @@ def _random_int(
 
 
 def _random_bytes(
-    *, only_if: Callable[[int], bool] = lambda _: True
+    *, only_if: Callable[[bytes], bool] = lambda _: True
 ) -> bytes:
     rv = _randbytes(_random_int(False))
     if only_if(rv):
