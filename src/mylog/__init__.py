@@ -45,7 +45,7 @@ from warnings import warn
 
 import termcolor
 
-__version__ = "0.2.0-beta.1"
+__version__ = "0.2.0"
 
 T = TypeVar("T")
 DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"
