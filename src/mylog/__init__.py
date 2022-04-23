@@ -193,7 +193,6 @@ def is_union(union: Any) -> bool:
         return (
             (type(union) is Union)
             or (union.__origin__ is Union)
-            or (type(union))
         )
     except AttributeError:
         return False
