@@ -190,10 +190,7 @@ def is_union(union: Any) -> bool:
         bool: True if `union` is a Union, False otherwise.
     """
     try:
-        return (
-            (type(union) is Union)
-            or (union.__origin__ is Union)
-        )
+        return (type(union) is Union) or (union.__origin__ is Union)
     except AttributeError:
         return False
 
@@ -289,6 +286,7 @@ class Logger:
         self.list: List[LogEvent] = []
         self.indent = 0  # Should be set manually
         self.enabled: bool = True
+        self.ctxmgr = IndentLogger(self)
 
         # These (in my opinion) should be inherited.
         self.format: str = self.higher.format
@@ -644,10 +642,7 @@ class Logger:
         # This function should be short, so if the user doesn't like it, it
         # can be copy-pasted, and the user can change it.
         # (That's why we have `._inherit`)
-        cls: Type[Logger] = type(self)
-        rv = cls(self)
-        rv._inherit(None)
-        return rv
+        return type(self)(self)
 
     def is_enabled_for(self, lvl: Levelable) -> bool:
         """
