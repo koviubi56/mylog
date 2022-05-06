@@ -18,13 +18,13 @@ _Changed from pre-releases are listed here._
 
 ### Changed
 
-- **Changed how inheritence works**
+- **Changed how inheritance works**
 - Protocols are now runtime checkable.
 - Specified requirements/dependencies in `setup.cfg` too.
 
 ### Removed
 
-- **! Because inheritence changed, most of the `get_*` methods were _removed_.**
+- **! Because inheritance changed, most of the `get_*` methods were _removed_.**
 
 ## [0.2.0-beta.1] - 2022-04-22
 
@@ -35,12 +35,12 @@ _Changed from pre-releases are listed here._
 
 ### Changed
 
-- **Changed how inheritence works**
+- **Changed how inheritance works**
 - Protocols are now runtime checkable.
 
 ### Removed
 
-- **! Because inheritence changed, most of the `get_*` methods were _removed_.**
+- **! Because inheritance changed, most of the `get_*` methods were _removed_.**
 
 ## [0.1.1] - 2022-03-27
 
