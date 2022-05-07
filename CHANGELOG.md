@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2022-05-07
+
+### Added
+
+- **! Added `TeeStream`.**
+- **Added `Logger.flush`. Defaults to `True`. _Not_ inherited. Must be set manually.**
+- Added `StreamProtocol`
+
 ## [0.2.0] - 2022-05-06
 
 _Changed from pre-releases are listed here._

@@ -26,7 +26,6 @@ from sys import _getframe, exc_info, stdout
 from time import asctime
 from types import TracebackType
 from typing import (
-    IO,
     Any,
     List,
     NoReturn,
@@ -45,7 +44,7 @@ from warnings import warn
 
 import termcolor
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 T = TypeVar("T")
 DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"
@@ -190,7 +189,9 @@ def is_union(union: Any) -> bool:
         bool: True if `union` is a Union, False otherwise.
     """
     try:
-        return (type(union) is Union) or (union.__origin__ is Union)
+        return (type(union) is Union) or (  # type: ignore
+            union.__origin__ is Union
+        )
     except AttributeError:
         return False
 
@@ -244,12 +245,65 @@ def check_types(
 
 @dataclasses.dataclass
 class LogEvent:
+    """A log event."""
+
     msg: str
     level: Levelable
     time: float  # ! UNIX seconds
     indent: int
     # // tb: bool
     frame_depth: int
+
+
+@runtime_checkable
+class StreamProtocol(Protocol):
+    """Protocol for streams."""
+
+    def write(self, __s: str, /) -> int:
+        """
+        Writes `__s` to the stream.
+
+        Args:
+            __s (str): The string to write.
+
+        Returns:
+            int: `len(__s)`
+        """
+
+    def flush(self) -> None:
+        """Flushes the streams."""
+
+
+class TeeStream:
+    """Write to and flush multiple streams."""
+
+    def __init__(self, *streams: StreamProtocol):
+        """
+        Initialize the TeeStream.
+
+        Args:
+            *streams (StreamProtocol): The streams to write to.
+        """
+        self.streams = streams
+
+    def write(self, __s: str, /) -> int:
+        """
+        Writes `__s` to all streams.
+
+        Args:
+            __s (str): The string to write.
+
+        Returns:
+            int: `len(__s)`
+        """
+        for stream in self.streams:
+            stream.write(__s)
+        return len(__s)
+
+    def flush(self) -> None:
+        """Flushes all streams."""
+        for stream in self.streams:
+            stream.flush()
 
 
 class Logger:
@@ -287,11 +341,12 @@ class Logger:
         self.indent = 0  # Should be set manually
         self.enabled: bool = True
         self.ctxmgr = IndentLogger(self)
+        self.flush: bool = True
 
         # These (in my opinion) should be inherited.
         self.format: str = self.higher.format
         self.threshold: Level = self.higher.threshold
-        self.stream: IO[str] = self.higher.stream
+        self.stream: StreamProtocol = self.higher.stream
 
     def __init__(
         self,
@@ -338,8 +393,9 @@ class Logger:
         self.format: str = DEFAULT_FORMAT
         self.threshold: Level = DEFAULT_THRESHOLD
         self.enabled: bool = True
-        self.stream: IO[str] = stdout
+        self.stream: StreamProtocol = stdout
         self._id = uuid.uuid4()  # Only used for ==, !=
+        self.flush: bool = True
 
         self.ctxmgr = IndentLogger(self)
 
@@ -486,7 +542,8 @@ class Logger:
             rv = self.stream.write(
                 self.format_msg(lvl, msg, tb, frame_depth)
             )
-        self.stream.flush()
+        if self.flush:
+            self.stream.flush()
         return rv
 
     def _log(

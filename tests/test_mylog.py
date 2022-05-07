@@ -1,5 +1,4 @@
 import base64
-import os
 import secrets
 import sys
 from time import time as get_unix_time
@@ -11,6 +10,20 @@ import termcolor
 import mylog
 
 T = TypeVar("T")
+
+
+class Stream:
+    """A stream that can be used for testing. No output to stdout."""
+
+    def __init__(self) -> None:
+        self.wrote = ""
+
+    def write(self, __s: str, /) -> int:
+        self.wrote += __s
+        return len(__s)
+
+    def flush(self) -> None:
+        pass
 
 
 def _randint(a: int, b: int) -> int:
@@ -89,7 +102,10 @@ def _random_level() -> Tuple[
 
 
 def random_anything(
-    *, only_if: Callable[[Union[bytes, int, str]], bool] = lambda _: True
+    *,
+    only_if: Callable[
+        [Union[bytes, int, str]], bool
+    ] = lambda _: True,
 ) -> Union[str, bytes, int]:
     rt = _randchoice(("hex", "bytes", "urlsafe", "int"))
     if rt == "hex":
@@ -125,7 +141,7 @@ def speed() -> float:
     start = get_unix_time()
     logger = mylog.root.get_child()
     logger.threshold = mylog.Level(10)
-    logger.stream = open(os.devnull, "w")
+    logger.stream = Stream()
     logger.critical(
         "The quick brown fox jumps over the lazy dog.", False
     )
@@ -472,7 +488,7 @@ class TestLogger:
         logger = mylog.root
         logger.list = []
         logger.indent = _randint(0, 10)
-        logger.stream = open(os.devnull, "w")
+        logger.stream = Stream()
         lvl = _random_level()
         msg = random_anything()
         frame_depth = _randint(0, 3)
@@ -496,9 +512,9 @@ class TestLogger:
         logger.list = []
         logger.indent = _randint(0, 10)
         logger.propagate = True
-        logger.stream = open(os.devnull, "w")
+        logger.stream = Stream()
         logger.threshold = mylog.Level.debug
-        logger.higher.stream = open(os.devnull, "w")
+        logger.higher.stream = Stream()
         logger.higher.threshold = mylog.Level.debug
         lvl = _random_level()
         msg = random_anything()
@@ -533,7 +549,7 @@ class TestLogger:
         logger.list = []
         logger.indent = _randint(0, 10)
         logger.threshold = mylog.Level.debug
-        logger.stream = open(os.devnull, "w")
+        logger.stream = Stream()
         lvl = _random_level()
         msg = random_anything()
         frame_depth = _randint(0, 3)
@@ -565,7 +581,7 @@ class TestLogger:
         logger.list = []
         logger.indent = _randint(0, 10)
         logger.threshold = mylog.Level.debug
-        logger.stream = open(os.devnull, "w")
+        logger.stream = Stream()
         msg = random_anything()
 
         time = get_unix_time()
@@ -681,3 +697,15 @@ def test_change_threshold():
         assert logger.threshold == new[1]
 
     assert logger.threshold == start[1]
+
+
+def test_tee():
+    streams = [Stream(), Stream()]
+    logger = mylog.root.get_child()
+    tee = mylog.TeeStream(*streams)
+    logger.stream = tee
+    logger.format = "{msg}"
+    msg = random_anything()
+    logger.critical(msg)
+    assert streams[0].wrote == str(msg) + "\n"
+    assert streams[1].wrote == str(msg) + "\n"

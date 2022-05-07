@@ -106,6 +106,24 @@ type(None)
 A log event.
 Time is in UNIX seconds.
 
+### _protocol_ `StreamProtocol`
+
+A class that has a `write` and a `flush` method.
+
+### _class_ `TeeStream`(\*streams: _StreamProtocol_)
+
+A stream that writes to and flushes multiple streams.
+
+#### Methods
+
+##### `write`(\_\_s: _str_, /) -> _int_
+
+Writes `__s` to all streams. Returns `len(__s)`.
+
+##### `flush`() -> _None_
+
+Flushes all streams.
+
 ### _class_ `Logger`(higher: _Optional[Logger]_, \*, lock: _Optional[Lock]_ = None)
 
 The logger class.
@@ -124,7 +142,7 @@ Colorizes a string.
 
 #### Methods
 
-##### `_inherit_`(lock: _Optional[Lock]_) -> _None_
+##### `_inherit`(lock: _Optional[Lock]_) -> _None_
 
 Inherit from `self.higher` (_"parent"_).
 
