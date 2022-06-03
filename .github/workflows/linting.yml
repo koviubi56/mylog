@@ -59,7 +59,7 @@ jobs:
         name: "Run pyroma"
         run: |
           python3 -m pip install -U pyroma
-          python3 -m pyroma
+          python3 -m pyroma .
 
       - id: "safety"
         name: "Run safety"
