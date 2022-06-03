@@ -65,9 +65,7 @@ def _random_bytes(
     return _random_bytes(only_if=only_if)  # pragma: no cover
 
 
-def _random_urlsafe(
-    *, only_if: Callable[[str], bool] = lambda _: True
-) -> str:
+def _random_urlsafe(*, only_if: Callable[[str], bool] = lambda _: True) -> str:
     tok = _random_bytes()
     rv = base64.urlsafe_b64encode(tok).rstrip(b"=").decode("ascii")
     if only_if(rv):
@@ -87,9 +85,7 @@ def _random_nonlevel_int(
     return _random_nonlevel_int(only_if=only_if)  # pragma: no cover
 
 
-def _random_level() -> Tuple[
-    Union[mylog.Level, int, str], mylog.Level
-]:
+def _random_level() -> Tuple[Union[mylog.Level, int, str], mylog.Level]:
     lvl = _randchoice(tuple(mylog.Level))
     _to = _randchoice(("lvl", "int", "str"))
     if _to == "lvl":
@@ -103,9 +99,7 @@ def _random_level() -> Tuple[
 
 def random_anything(
     *,
-    only_if: Callable[
-        [Union[bytes, int, str]], bool
-    ] = lambda _: True,
+    only_if: Callable[[Union[bytes, int, str]], bool] = lambda _: True,
 ) -> Union[str, bytes, int]:
     rt = _randchoice(("hex", "bytes", "urlsafe", "int"))
     if rt == "hex":
@@ -142,9 +136,7 @@ def speed() -> float:
     logger = mylog.root.get_child()
     logger.threshold = mylog.Level(10)
     logger.stream = Stream()
-    logger.critical(
-        "The quick brown fox jumps over the lazy dog.", False
-    )
+    logger.critical("The quick brown fox jumps over the lazy dog.", False)
     end = get_unix_time()
     return end - start
 
@@ -163,81 +155,40 @@ def test_to_level():
     assert mylog.to_level(mylog.Level.warning) == mylog.Level.warning
     assert mylog.to_level(mylog.Level.warn) == mylog.Level.warning
     assert mylog.to_level(mylog.Level.error) == mylog.Level.error
-    assert (
-        mylog.to_level(mylog.Level.critical) == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.critical) == mylog.Level.critical
     assert mylog.to_level(mylog.Level.fatal) == mylog.Level.critical
 
+    assert mylog.to_level(mylog.Level.debug.numerator) == mylog.Level.debug
+    assert mylog.to_level(mylog.Level.info.numerator) == mylog.Level.info
+    assert mylog.to_level(mylog.Level.warning.numerator) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.warn.numerator) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.error.numerator) == mylog.Level.error
     assert (
-        mylog.to_level(mylog.Level.debug.numerator)
-        == mylog.Level.debug
+        mylog.to_level(mylog.Level.critical.numerator) == mylog.Level.critical
     )
-    assert (
-        mylog.to_level(mylog.Level.info.numerator) == mylog.Level.info
-    )
-    assert (
-        mylog.to_level(mylog.Level.warning.numerator)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.warn.numerator)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.error.numerator)
-        == mylog.Level.error
-    )
-    assert (
-        mylog.to_level(mylog.Level.critical.numerator)
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(mylog.Level.fatal.numerator)
-        == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.fatal.numerator) == mylog.Level.critical
 
-    assert (
-        mylog.to_level(mylog.Level.debug.value) == mylog.Level.debug
-    )
+    assert mylog.to_level(mylog.Level.debug.value) == mylog.Level.debug
     assert mylog.to_level(mylog.Level.info.value) == mylog.Level.info
-    assert (
-        mylog.to_level(mylog.Level.warning.value)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.warn.value) == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.error.value) == mylog.Level.error
-    )
-    assert (
-        mylog.to_level(mylog.Level.critical.value)
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(mylog.Level.fatal.value)
-        == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.warning.value) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.warn.value) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.error.value) == mylog.Level.error
+    assert mylog.to_level(mylog.Level.critical.value) == mylog.Level.critical
+    assert mylog.to_level(mylog.Level.fatal.value) == mylog.Level.critical
 
     assert (
-        mylog.to_level(str(mylog.Level.debug.numerator))
-        == mylog.Level.debug
+        mylog.to_level(str(mylog.Level.debug.numerator)) == mylog.Level.debug
     )
-    assert (
-        mylog.to_level(str(mylog.Level.info.numerator))
-        == mylog.Level.info
-    )
+    assert mylog.to_level(str(mylog.Level.info.numerator)) == mylog.Level.info
     assert (
         mylog.to_level(str(mylog.Level.warning.numerator))
         == mylog.Level.warning
     )
     assert (
-        mylog.to_level(str(mylog.Level.warn.numerator))
-        == mylog.Level.warning
+        mylog.to_level(str(mylog.Level.warn.numerator)) == mylog.Level.warning
     )
     assert (
-        mylog.to_level(str(mylog.Level.error.numerator))
-        == mylog.Level.error
+        mylog.to_level(str(mylog.Level.error.numerator)) == mylog.Level.error
     )
     assert (
         mylog.to_level(str(mylog.Level.critical.numerator))
@@ -248,52 +199,25 @@ def test_to_level():
         == mylog.Level.critical
     )
 
+    assert mylog.to_level(str(mylog.Level.debug.value)) == mylog.Level.debug
+    assert mylog.to_level(str(mylog.Level.info.value)) == mylog.Level.info
     assert (
-        mylog.to_level(str(mylog.Level.debug.value))
-        == mylog.Level.debug
+        mylog.to_level(str(mylog.Level.warning.value)) == mylog.Level.warning
     )
+    assert mylog.to_level(str(mylog.Level.warn.value)) == mylog.Level.warning
+    assert mylog.to_level(str(mylog.Level.error.value)) == mylog.Level.error
     assert (
-        mylog.to_level(str(mylog.Level.info.value))
-        == mylog.Level.info
+        mylog.to_level(str(mylog.Level.critical.value)) == mylog.Level.critical
     )
-    assert (
-        mylog.to_level(str(mylog.Level.warning.value))
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.warn.value))
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.error.value))
-        == mylog.Level.error
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.critical.value))
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.fatal.value))
-        == mylog.Level.critical
-    )
+    assert mylog.to_level(str(mylog.Level.fatal.value)) == mylog.Level.critical
 
     assert mylog.to_level(mylog.Level.debug.name) == mylog.Level.debug
     assert mylog.to_level(mylog.Level.info.name) == mylog.Level.info
-    assert (
-        mylog.to_level(mylog.Level.warning.name)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.warn.name) == mylog.Level.warning
-    )
+    assert mylog.to_level(mylog.Level.warning.name) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.warn.name) == mylog.Level.warning
     assert mylog.to_level(mylog.Level.error.name) == mylog.Level.error
-    assert (
-        mylog.to_level(mylog.Level.critical.name)
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(mylog.Level.fatal.name) == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.critical.name) == mylog.Level.critical
+    assert mylog.to_level(mylog.Level.fatal.name) == mylog.Level.critical
 
     with pytest.raises(ValueError, match="Invalid level"):
         mylog.to_level(_random_nonlevel_int())
@@ -337,9 +261,7 @@ def test_nonetype():
 def test_check_types():
     assert mylog.check_types(a=(int, 1), b=(str, "2")) is True
     assert (
-        mylog.check_types(
-            arg_1=((int, float), 1), b_8=(str, "Hello world")
-        )
+        mylog.check_types(arg_1=((int, float), 1), b_8=(str, "Hello world"))
         is True
     )
     assert mylog.check_types(do=(bool, True)) is True
@@ -425,32 +347,28 @@ class TestLogger:
     @staticmethod
     def test_level_to_string():
         logger = mylog.root
-        assert logger.level_to_str(
-            mylog.Level.debug
-        ) == termcolor.colored("DEBUG".ljust(8), "blue")
-        assert logger.level_to_str(
-            mylog.Level.info
-        ) == termcolor.colored("INFO".ljust(8), "cyan")
-        assert logger.level_to_str(
-            mylog.Level.warning
-        ) == termcolor.colored("WARNING".ljust(8), "yellow")
-        assert logger.level_to_str(
-            mylog.Level.warn
-        ) == termcolor.colored("WARNING".ljust(8), "yellow")
-        assert logger.level_to_str(
-            mylog.Level.error
-        ) == termcolor.colored("ERROR".ljust(8), "red")
-        assert logger.level_to_str(
-            mylog.Level.critical
-        ) == termcolor.colored(
+        assert logger.level_to_str(mylog.Level.debug) == termcolor.colored(
+            "DEBUG".ljust(8), "blue"
+        )
+        assert logger.level_to_str(mylog.Level.info) == termcolor.colored(
+            "INFO".ljust(8), "cyan"
+        )
+        assert logger.level_to_str(mylog.Level.warning) == termcolor.colored(
+            "WARNING".ljust(8), "yellow"
+        )
+        assert logger.level_to_str(mylog.Level.warn) == termcolor.colored(
+            "WARNING".ljust(8), "yellow"
+        )
+        assert logger.level_to_str(mylog.Level.error) == termcolor.colored(
+            "ERROR".ljust(8), "red"
+        )
+        assert logger.level_to_str(mylog.Level.critical) == termcolor.colored(
             "CRITICAL".ljust(8),
             "red",
             "on_yellow",
             ["bold", "underline", "blink"],
         )
-        assert logger.level_to_str(
-            mylog.Level.fatal
-        ) == termcolor.colored(
+        assert logger.level_to_str(mylog.Level.fatal) == termcolor.colored(
             "CRITICAL".ljust(8),
             "red",
             "on_yellow",
@@ -538,9 +456,7 @@ class TestLogger:
             UserWarning, match="Root logger should not propagate"
         ):
             mylog.root.propagate = True
-            mylog.root._log(
-                _random_level()[0], random_anything(), False, 2
-            )
+            mylog.root._log(_random_level()[0], random_anything(), False, 2)
             mylog.root.propagate = False
 
     @staticmethod
