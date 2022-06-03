@@ -2,10 +2,9 @@ name: "Linting"
 
 on: [pull_request, push]
 
-description: "Linting"
-
 jobs:
   linting:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
     steps:
