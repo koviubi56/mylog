@@ -65,7 +65,7 @@ jobs:
         name: "Run safety"
         run: |
           python3 -m pip install -U safety
-          python3 -m safety check --debug -r requirements.txt
+          python3 -m safety check -r requirements.txt
 
       - id: "autoflake"
         name: "Run autoflake"
