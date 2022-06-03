@@ -77,7 +77,7 @@ jobs:
         name: "Run isort"
         run: |
           python3 -m pip install -U isort
-          python3 -m isort -c
+          python3 -m isort -c .
 
       - id: "black"
         name: "Run black"
