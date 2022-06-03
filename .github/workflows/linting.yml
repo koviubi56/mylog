@@ -83,4 +83,4 @@ jobs:
         name: "Run black"
         run: |
           python3 -m pip install -U black
-          python3 -m black --check -l 79 -v
+          python3 -m black --check -l 79 -v .
