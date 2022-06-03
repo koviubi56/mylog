@@ -96,3 +96,9 @@ jobs:
         run: |
           python3 -m pip install -U pylint
           python3 -m pylint
+
+      - id: "pyflakes"
+        name: "Run pyflakes"
+        run: |
+          python3 -m pip install -U pyflakes
+          python3 -m pyflakes
