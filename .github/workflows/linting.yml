@@ -35,7 +35,7 @@ jobs:
         name: "Run flake8"
         run: |
           python3 -m pip install -U flake8 flake8-2020 flake8-bugbear flake8-builtins flake8-comprehensions dlint flake8-bandit
-          python3 -m flake8 --count --extend-exclude=*venv* --show-source --statistics
+          python3 -m flake8 --count --extend-exclude=*venv* --show-source --statistics -v
 
       - id: "pyupgrade"
         name: "Run pyupgrade"
@@ -47,7 +47,7 @@ jobs:
         name: "Run setup-cfg-fmt"
         run: |
           python3 -m pip install -U setup-cfg-fmt
-          python3 -m setup-cfg-fmt
+          python3 -m setup_cfg_fmt
 
       - id: "yesqa"
         name: "Run yesqa"
@@ -65,13 +65,13 @@ jobs:
         name: "Run safety"
         run: |
           python3 -m pip install -U safety
-          python3 -m safety check -r requirements.txt
+          python3 -m safety check --debug -r requirements.txt
 
       - id: "autoflake"
         name: "Run autoflake"
         run: |
           python3 -m pip install -U autoflake
-          python3 -m autoflake -c -r
+          python3 -m autoflake -c -r -v
 
       - id: "isort"
         name: "Run isort"
@@ -83,4 +83,4 @@ jobs:
         name: "Run black"
         run: |
           python3 -m pip install -U black
-          python3 -m black --check -l 79
+          python3 -m black --check -l 79 -v
