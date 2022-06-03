@@ -1,0 +1,86 @@
+name: "Linting"
+
+on: [pull_request, push]
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - id: "checkout"
+        name: "Checkout"
+        uses: actions/checkout@v3
+
+      - id: "cache"
+        name: "Cache"
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - id: "python"
+        name: "Set up Python"
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.x"
+
+      - id: "update"
+        name: "Update pip stuff"
+        run: python3 -m pip install -U pip setuptools wheel
+
+      - id: "flake8"
+        name: "Run flake8"
+        run: |
+          python3 -m pip install -U flake8 flake8-2020 flake8-bugbear flake8-builtins flake8-comprehensions dlint flake8-bandit
+          python3 -m flake8 --count --extend-exclude=*venv* --show-source --statistics -v
+
+      - id: "pyupgrade"
+        name: "Run pyupgrade"
+        run: |
+          python3 -m pip install -U pyupgrade
+          python3 -m pyupgrade
+
+      - id: "setup-cfg-fmt"
+        name: "Run setup-cfg-fmt"
+        run: |
+          python3 -m pip install -U setup-cfg-fmt
+          python3 -m setup_cfg_fmt
+
+      - id: "yesqa"
+        name: "Run yesqa"
+        run: |
+          python3 -m pip install -U yesqa
+          python3 -m yesqa
+
+      - id: "pyroma"
+        name: "Run pyroma"
+        run: |
+          python3 -m pip install -U pyroma
+          python3 -m pyroma .
+
+      - id: "safety"
+        name: "Run safety"
+        run: |
+          python3 -m pip install -U safety
+          python3 -m safety check -r requirements.txt
+
+      - id: "autoflake"
+        name: "Run autoflake"
+        run: |
+          python3 -m pip install -U autoflake
+          python3 -m autoflake -c -r -v .
+
+      - id: "isort"
+        name: "Run isort"
+        run: |
+          python3 -m pip install -U isort
+          python3 -m isort -c .
+
+      - id: "black"
+        name: "Run black"
+        run: |
+          python3 -m pip install -U black
+          python3 -m black --check -l 79 -v
