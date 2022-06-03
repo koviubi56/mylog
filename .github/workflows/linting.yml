@@ -89,7 +89,7 @@ jobs:
         name: "Run prospector"
         run: |
           python3 -m pip install -U prospector
-          python3 -m prospector --strictness high
+          python3 -m prospector --strictness medium
 
       - id: "pylint"
         name: "Run pylint"
