@@ -85,12 +85,6 @@ jobs:
           python3 -m pip install -U black
           python3 -m black --check -l 79 -v .
 
-      - id: "pylint"
-        name: "Run pylint"
-        run: |
-          python3 -m pip install -U pylint
-          python3 -m pylint .
-
       - id: "pyflakes"
         name: "Run pyflakes"
         run: |
