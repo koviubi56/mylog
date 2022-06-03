@@ -71,7 +71,7 @@ jobs:
         name: "Run autoflake"
         run: |
           python3 -m pip install -U autoflake
-          python3 -m autoflake -c -r -v
+          python3 -m autoflake -c -r -v .
 
       - id: "isort"
         name: "Run isort"
