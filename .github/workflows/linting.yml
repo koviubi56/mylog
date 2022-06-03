@@ -89,7 +89,7 @@ jobs:
         name: "Run pylint"
         run: |
           python3 -m pip install -U pylint
-          python3 -m pylint
+          python3 -m pylint .
 
       - id: "pyflakes"
         name: "Run pyflakes"
