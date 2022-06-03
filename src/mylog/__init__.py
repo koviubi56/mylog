@@ -25,24 +25,11 @@ from enum import IntEnum
 from sys import _getframe, exc_info, stdout
 from time import asctime
 from types import TracebackType
-from typing import (
-    Any,
-    List,
-    NoReturn,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
-from typing_extensions import (
-    Literal,
-    Protocol,
-    Type,
-    runtime_checkable,
-)
+from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
 from warnings import warn
 
 import termcolor
+from typing_extensions import Literal, Protocol, Type, runtime_checkable
 
 __version__ = "0.3.0"
 
@@ -77,9 +64,7 @@ class Stringable(Protocol):
 Levelable = Union[Level, Stringable, int]
 
 
-def to_level(
-    lvl: Levelable, int_ok: bool = False
-) -> Union[Level, int]:
+def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
     try:
         return Level(lvl)  # type: ignore
     except ValueError:
@@ -170,8 +155,7 @@ def _check_types_error(
     arg: str, expected: Union[type, Tuple[type, ...]], got: Any
 ) -> NoReturn:
     raise TypeError(
-        f"{arg!r} must be type {expected!r}, got {type(got)!r}"
-        f" ({got!r})"
+        f"{arg!r} must be type {expected!r}, got {type(got)!r}" f" ({got!r})"
     )
 
 
@@ -539,9 +523,7 @@ class Logger:
             )
         )
         with self.lock:
-            rv = self.stream.write(
-                self.format_msg(lvl, msg, tb, frame_depth)
-            )
+            rv = self.stream.write(self.format_msg(lvl, msg, tb, frame_depth))
         if self.flush:
             self.stream.flush()
         return rv
@@ -588,16 +570,12 @@ class Logger:
                     )
                     return 0
                 # Log with parent
-                return self.higher._log(
-                    lvl, msg, traceback, frame_depth + 1
-                )
+                return self.higher._log(lvl, msg, traceback, frame_depth + 1)
             # Check if it's enabled
             if not self.is_enabled_for(lvl):
                 return 0
             # Log
-            return self._actually_log(
-                lvl, msg, frame_depth, traceback
-            )
+            return self._actually_log(lvl, msg, frame_depth, traceback)
         return 0
 
     def debug(self, msg: Stringable, traceback: bool = False) -> int:
@@ -612,9 +590,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(
-            msg=(Stringable, msg), traceback=(bool, traceback)
-        )
+        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.debug, msg, traceback, 4)
 
     def info(self, msg: Stringable, traceback: bool = False) -> int:
@@ -629,14 +605,10 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(
-            msg=(Stringable, msg), traceback=(bool, traceback)
-        )
+        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.info, msg, traceback, 4)
 
-    def warning(
-        self, msg: Stringable, traceback: bool = False
-    ) -> int:
+    def warning(self, msg: Stringable, traceback: bool = False) -> int:
         """
         Log a warning message.
 
@@ -648,9 +620,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(
-            msg=(Stringable, msg), traceback=(bool, traceback)
-        )
+        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.warning, msg, traceback, 4)
 
     def error(self, msg: Stringable, traceback: bool = False) -> int:
@@ -665,14 +635,10 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(
-            msg=(Stringable, msg), traceback=(bool, traceback)
-        )
+        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.error, msg, traceback, 4)
 
-    def critical(
-        self, msg: Stringable, traceback: bool = False
-    ) -> int:
+    def critical(self, msg: Stringable, traceback: bool = False) -> int:
         """
         Log a critical/fatal message.
 
@@ -684,9 +650,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(
-            msg=(Stringable, msg), traceback=(bool, traceback)
-        )
+        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.critical, msg, traceback, 4)
 
     def get_child(self) -> "Logger":
