@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import abc
 import contextlib
 import dataclasses
+import datetime
 import sys
 import time
 import traceback
@@ -449,7 +450,7 @@ class Logger:
         check_types(event=(LogEvent, event))
         _indent = "  " * self.indent
         _lvl = self.level_to_str(event.level)
-        _time = str(event.time)
+        _time = str(datetime.datetime.fromtimestamp(event.time))
         _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
         _msg = str(event.msg)
         if (event.tb) and (sys.exc_info() == (None, None, None)):
