@@ -93,7 +93,7 @@ Converts an int/str/something to a Level. If `lvl` cannot be converted, and `int
 type(None)
 ```
 
-### _context manager_ `SetAttr`(obj: _object_, name: _str_, new*value: \_Any*)
+### _context manager_ `SetAttr`(obj: _object_, name: _str_, new-value: _Any_)
 
 A context manager for setting and then resetting an attribute.
 
