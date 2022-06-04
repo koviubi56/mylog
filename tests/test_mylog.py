@@ -1,8 +1,8 @@
 import base64
 import secrets
-import sys
 from time import time as get_unix_time
-from typing import Callable, Sequence, Tuple, TypeVar, Union
+from types import SimpleNamespace
+from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
 
 import pytest
 import termcolor
@@ -11,19 +11,26 @@ import mylog
 
 T = TypeVar("T")
 
+mylog.root.handlers = [mylog.NoHandler()]
+
 
 class Stream:
     """A stream that can be used for testing. No output to stdout."""
 
     def __init__(self) -> None:
         self.wrote = ""
+        self.flushed = False
 
     def write(self, __s: str, /) -> int:
         self.wrote += __s
         return len(__s)
 
     def flush(self) -> None:
-        pass
+        self.flushed = True
+
+
+def iterable_isinstance(iterable: Iterable[Any], cls: type) -> bool:
+    return all(isinstance(x, cls) for x in iterable)
 
 
 def _randint(a: int, b: int) -> int:
@@ -247,13 +254,6 @@ def test_to_level():
     assert mylog.to_level(nli, True) == nli
 
 
-def test_nolock():
-    nolock = mylog.NoLock()
-
-    assert nolock.__enter__() in {True, False, 1}
-    assert nolock.__exit__(None, None, None) is None
-
-
 def test_nonetype():
     assert x_is_y(mylog.NoneType, type(None))
 
@@ -279,6 +279,53 @@ def test_check_types():
         mylog.check_types(do=(bool, False), sure=((bool, int), 6.9))
 
 
+def test_setattr():
+    original = random_anything()
+    new = random_anything()
+    obj = SimpleNamespace(exampleattr=original)
+
+    with mylog.SetAttr(obj, "exampleattr", new):
+        assert obj.exampleattr == new
+
+    assert obj.exampleattr == original
+
+
+def test_stream_writer_handler():
+    stream = Stream()
+    handler = mylog.StreamWriterHandler(stream, flush=True)
+    logger = mylog.root.get_child()
+    logger.handlers = [handler]
+    event = mylog.LogEvent(
+        random_anything(),
+        _random_level()[0],
+        _random_int(False),
+        _random_int(False),
+        1,
+        False,
+    )
+
+    handler.handle(logger, event)
+    assert stream.wrote
+    assert stream.flushed
+
+    stream = Stream()
+    handler = mylog.StreamWriterHandler(stream, flush=False)
+    logger = mylog.root.get_child()
+    logger.handlers = [handler]
+    event = mylog.LogEvent(
+        random_anything(),
+        _random_level()[0],
+        _random_int(False),
+        _random_int(False),
+        1,
+        False,
+    )
+
+    handler.handle(logger, event)
+    assert stream.wrote
+    assert not stream.flushed
+
+
 class TestLogger:
     @staticmethod
     def test_eq():
@@ -297,6 +344,12 @@ class TestLogger:
         assert l1.__ne__(object()) == NotImplemented
 
     @staticmethod
+    def test_get_default_handlers():
+        _handlers = mylog.root.get_default_handlers()
+        assert isinstance(_handlers, list)
+        assert iterable_isinstance(_handlers, mylog.Handler)
+
+    @staticmethod
     def test_init():
         with pytest.raises(
             ValueError,
@@ -304,21 +357,18 @@ class TestLogger:
         ):
             mylog.Logger(higher=None)
 
-        lock = mylog.NoLock()
         # Don't set `_allow_root` in production code
         mylog._allow_root = True
-        logger = mylog.Logger(None, lock=lock)
+        logger = mylog.Logger(None)
         mylog._allow_root = False
 
         assert logger.higher is None
         assert logger.propagate is False
-        assert logger.lock == lock
         assert logger.list == []
 
         assert logger.format == mylog.DEFAULT_FORMAT
         assert logger.threshold == mylog.DEFAULT_THRESHOLD
         assert logger.enabled is True
-        assert logger.stream == sys.stdout
         assert logger.indent == 0
 
     @staticmethod
@@ -381,23 +431,17 @@ class TestLogger:
     def test_format_msg():
         logger = mylog.root
         lvl = _random_level()
+        event = mylog.LogEvent(random_anything(), lvl[0], 0, 0, 0, False)
+
         # Check if it runs
         for _ in range(10):
-            logger.format_msg(
-                lvl[0],
-                random_anything(),
-                False,
-                _randint(0, 3),
-            )
+            logger.format_msg(event)
+
+        event.tb = True
         with pytest.warns(
             UserWarning, match="No traceback available, but tb=True"
         ):
-            logger.format_msg(
-                lvl[0],
-                random_anything(),
-                True,
-                _randint(0, 3),
-            )
+            logger.format_msg(event)
 
     @staticmethod
     def test_actually_log():
@@ -517,14 +561,12 @@ class TestLogger:
 
         assert isinstance(child, type(parent))
         assert child.propagate is False
-        assert isinstance(child.lock, mylog.Lock)
         assert child.list == []
         assert child.indent == 0
         assert child.enabled is True
 
         assert child.format == parent.format
         assert child.threshold == parent.threshold
-        assert child.stream == parent.stream
 
     @staticmethod
     def test_is_enabled_for():
@@ -613,15 +655,3 @@ def test_change_threshold():
         assert logger.threshold == new[1]
 
     assert logger.threshold == start[1]
-
-
-def test_tee():
-    streams = [Stream(), Stream()]
-    logger = mylog.root.get_child()
-    tee = mylog.TeeStream(*streams)
-    logger.stream = tee
-    logger.format = "{msg}"
-    msg = random_anything()
-    logger.critical(msg)
-    assert streams[0].wrote == str(msg) + "\n"
-    assert streams[1].wrote == str(msg) + "\n"

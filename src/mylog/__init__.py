@@ -15,18 +15,17 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import abc
 import contextlib
 import dataclasses
-import threading
+import sys
 import time
 import traceback
 import uuid
+import warnings
 from enum import IntEnum
-from sys import _getframe, exc_info, stdout
-from time import asctime
 from types import TracebackType
 from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
-from warnings import warn
 
 import termcolor
 from typing_extensions import Literal, Protocol, Type, runtime_checkable
@@ -65,6 +64,20 @@ Levelable = Union[Level, Stringable, int]
 
 
 def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
+    """
+    Convert a Levelable to a Level (or int).
+
+    Args:
+        lvl (Levelable): The levelable object to convert.
+        int_ok (bool, optional): If there's no level, can this function return\
+ an int? Defaults to False.
+
+    Raises:
+        ValueError: If there's no level, and int_ok is False.
+
+    Returns:
+        Union[Level, int]: The level or int.
+    """
     try:
         return Level(lvl)  # type: ignore
     except ValueError:
@@ -82,111 +95,29 @@ def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
                 ) from None
 
 
-@runtime_checkable
-class Lock(Protocol):
-    """Protocol for locks that are needed by the logger."""
-
-    def __enter__(
-        self, blocking: bool = True, timeout: float = -1
-    ) -> Union[bool, Literal[1]]:
-        """
-        Enter the lock.
-
-        Args:
-            blocking (bool, optional): Defaults to True.
-            timeout (float, optional): Defaults to -1.
-        """
-
-    def __exit__(
-        self,
-        typ: Type[BaseException],
-        value: BaseException,
-        tb: TracebackType,
-    ) -> None:
-        """
-        Exit the lock.
-
-        Args:
-            typ (Type[BaseException]): The type of the exception.
-            value (BaseException): The exception.
-            tb (TracebackType): The traceback.
-        """
-
-
-class NoLock:
-    """No lock, if you don't want a lock"""
-
-    def __enter__(
-        self, blocking: bool = True, timeout: float = -1
-    ) -> Union[bool, Literal[1]]:
-        """
-        Enter the lock.
-
-        Args:
-            blocking (bool, optional): Defaults to True.
-            timeout (float, optional): Defaults to -1.
-
-        Returns:
-            Union[bool, Literal[1]]
-        """
-        return True
-
-    def __exit__(
-        self,
-        typ: Type[BaseException],
-        value: BaseException,
-        tb: TracebackType,
-    ) -> None:
-        """
-        Exit the lock.
-
-        Args:
-            typ (Type[BaseException]): The type of the exception.
-            value (BaseException): The exception.
-            tb (TracebackType): The traceback.
-        """
-        return
-
-
 NoneType = type(None)
 
 
 def _check_types_error(
     arg: str, expected: Union[type, Tuple[type, ...]], got: Any
 ) -> NoReturn:
+    """
+    Raise a TypeError with the correct message.
+
+    Args:
+        arg (str): The argument name.
+        expected (Union[type, Tuple[type, ...]]): The expected type.
+        got (Any): The got value.
+
+    Raises:
+        TypeError
+
+    Returns:
+        NoReturn: Never returns; raises.
+    """
     raise TypeError(
         f"{arg!r} must be type {expected!r}, got {type(got)!r}" f" ({got!r})"
     )
-
-
-def is_union(union: Any) -> bool:
-    """
-    Is `union` a Union?
-
-    >>> is_union(Union[int, str])
-    True
-
-    Args:
-        union (Any): The object to check.
-
-    Returns:
-        bool: True if `union` is a Union, False otherwise.
-    """
-    try:
-        return (type(union) is Union) or (  # type: ignore
-            union.__origin__ is Union
-        )
-    except AttributeError:
-        return False
-
-
-#    Actually: Union   vvv
-#                      ~~~
-def check_union(union: Any, got: Any) -> bool:
-    try:
-        return isinstance(got, union)
-    except TypeError:
-        return any(isinstance(got, typ) for typ in union.__args__)
 
 
 def check_types(
@@ -220,11 +151,41 @@ def check_types(
         Literal[True]: Always True.
     """
     for arg, (expected, got) in kwargs.items():
-        if is_union(expected) and check_union(expected, got):
-            continue
         if not isinstance(got, expected):
             _check_types_error(arg, expected, got)
     return True
+
+
+class SetAttr:
+    """A context manager for setting and then resetting an attribute."""
+
+    def __init__(self, obj: object, name: str, new_value: Any) -> None:
+        """
+        Initialize the SetAttr.
+
+        Args:
+            obj (object): The object to set the attribute on.
+            name (str): The name of the attribute.
+            new_value (Any): The new value of the attribute.
+        """
+        self.obj = obj
+        self.name = name
+        self.new_value = new_value
+
+    def __enter__(self) -> Type["SetAttr"]:
+        """
+        Enter the context manager.
+
+        Returns:
+            SetAttr: The SetAttr instance.
+        """
+        self.old_value = getattr(self.obj, self.name)
+        setattr(self.obj, self.name, self.new_value)
+        return self
+
+    def __exit__(self, *args):
+        """Exit the context manager."""
+        setattr(self.obj, self.name, self.old_value)
 
 
 @dataclasses.dataclass
@@ -235,8 +196,8 @@ class LogEvent:
     level: Levelable
     time: float  # ! UNIX seconds
     indent: int
-    # // tb: bool
     frame_depth: int
+    tb: bool
 
 
 @runtime_checkable
@@ -258,36 +219,81 @@ class StreamProtocol(Protocol):
         """Flushes the streams."""
 
 
-class TeeStream:
-    """Write to and flush multiple streams."""
+class Handler(abc.ABC):
+    """A handler ABC class."""
 
-    def __init__(self, *streams: StreamProtocol):
+    @abc.abstractmethod
+    def handle(self, logger: "Logger", event: LogEvent) -> None:
         """
-        Initialize the TeeStream.
+        Handle the event.
 
         Args:
-            *streams (StreamProtocol): The streams to write to.
+            logger (Logger): The logger that created the event.
+            event (LogEvent): The event.
         """
-        self.streams = streams
 
-    def write(self, __s: str, /) -> int:
+
+class NoHandler(Handler):
+    """A handler that does nothing."""
+
+    def handle(self, logger: "Logger", event: LogEvent) -> None:
         """
-        Writes `__s` to all streams.
+        Handle the event.
 
         Args:
-            __s (str): The string to write.
-
-        Returns:
-            int: `len(__s)`
+            logger (Logger): The logger that created the event.
+            event (LogEvent): The event.
         """
-        for stream in self.streams:
-            stream.write(__s)
-        return len(__s)
 
-    def flush(self) -> None:
-        """Flushes all streams."""
-        for stream in self.streams:
-            stream.flush()
+
+class StreamWriterHandler(Handler):
+    """A handler to write to a stream."""
+
+    def __init__(
+        self,
+        stream: StreamProtocol,
+        *,
+        flush: bool = True,
+        use_colors: bool = True,
+        format_msg: bool = True,
+    ) -> None:
+        """
+        Initialize the StreamWriterHandler.
+
+        Args:
+            stream (StreamProtocol): The stream to write to.
+            flush (bool, optional): Flush the stream after writing to it? Defaults to True.
+            use_colors (bool, optional): Use colors? Defaults to True.
+            format_msg (bool, optional): Format the message? Defaults to True.
+        """
+        check_types(
+            stream=(StreamProtocol, stream),
+            flush=(bool, flush),
+            use_colors=(bool, use_colors),
+            format_msg=(bool, format_msg),
+        )
+        self.stream = stream
+        self.flush = flush
+        self.use_colors = use_colors
+        self.format_msg = format_msg
+
+    def handle(self, logger: "Logger", event: LogEvent) -> None:
+        """
+        Handle the event.
+
+        Args:
+            logger (Logger): The logger that created the event.
+            event (LogEvent): The event.
+        """
+        with SetAttr(logger, "colors", self.use_colors):
+            msg = (
+                (logger.format_msg(event))
+                if (self.format_msg)
+                else (event.msg)
+            )
+        self.stream.write(msg)
+        if self.flush:
+            self.stream.flush()
 
 
 class Logger:
@@ -313,51 +319,45 @@ class Logger:
             return self._id != __o._id
         return NotImplemented
 
-    def _inherit(self, lock: Optional[Lock]) -> None:
+    def _inherit(self) -> None:
         # Made a separate function so it can be overwritten
-        check_types(lock=((NoneType, Lock), lock))
 
         # These (in my opinion) should not be inherited.
         self.propagate = False
         self._id = uuid.uuid4()  # Only used for ==, !=
-        self.lock = lock or threading.Lock()
         self.list: List[LogEvent] = []
         self.indent = 0  # Should be set manually
         self.enabled: bool = True
         self.ctxmgr = IndentLogger(self)
-        self.flush: bool = True
 
         # These (in my opinion) should be inherited.
         self.format: str = self.higher.format
         self.threshold: Level = self.higher.threshold
-        self.stream: StreamProtocol = self.higher.stream
+        self.handlers: List[Handler] = self.higher.handlers
 
-    def __init__(
-        self,
-        higher: Optional["Logger"] = None,
-        *,
-        lock: Optional[Lock] = None,  # You can use NoLock
-    ) -> None:
+    def get_default_handlers(self) -> List[Handler]:
+        """
+        Get the default handlers. Please note, that overwriting this function\
+ will not change the handlers.
+
+        Returns:
+            List[Handler]: The default handlers.
+        """
+        return [StreamWriterHandler(sys.stderr)]
+
+    def __init__(self, higher: Optional["Logger"] = None) -> None:
         """
         Initialize the logger.
 
         Args:
             higher (Optional[Logger], optional): The higher logger. If it's\
  None or omitted then the logger will be the root. Defaults to None.
-            lock (Optional[Lock], optional): The lock to use. If you don't\
- want a lock use NoLock. Defaults to None.
 
         Raises:
             ValueError: If the higher logger is None, but root is already\
  created (internally)
         """
-        check_types(
-            higher=((Logger, NoneType), higher),
-            lock=(
-                (NoneType, Lock),
-                lock,
-            ),
-        )
+        check_types(higher=((Logger, NoneType), higher))
         if (higher is None) and (not _allow_root):
             raise ValueError(
                 "Cannot create a new logger: Root logger already"
@@ -367,19 +367,17 @@ class Logger:
         if higher is not None:
             self.higher = higher
             # Made a separate function so it can be overwritten
-            self._inherit(lock)
+            self._inherit()
             return
         self.higher = higher
         self.propagate = False  # ! Root logger should not propagate!
-        self.lock = lock or threading.Lock()
         self.list: List[LogEvent] = []
         self.indent = 0  # Should be set manually
         self.format: str = DEFAULT_FORMAT
         self.threshold: Level = DEFAULT_THRESHOLD
         self.enabled: bool = True
-        self.stream: StreamProtocol = stdout
         self._id = uuid.uuid4()  # Only used for ==, !=
-        self.flush: bool = True
+        self.handlers: List[Handler] = self.get_default_handlers()
 
         self.ctxmgr = IndentLogger(self)
 
@@ -438,43 +436,29 @@ class Logger:
 
         return rv
 
-    def format_msg(
-        self,
-        lvl: Levelable,
-        msg: Stringable,
-        tb: bool,
-        frame_depth: int,
-    ) -> str:
+    def format_msg(self, event: LogEvent) -> str:
         """
         Format the message.
 
         Args:
-            lvl (Levelable): The level of the message.
-            msg (Stringable): The message.
-            tb (bool): Whether to include the traceback.
-            frame_depth (int): The depth of the frame.
+            event (LogEvent): The event.
 
         Returns:
             str: The formatted message.
         """
-        check_types(
-            lvl=(Levelable, lvl),
-            msg=(Stringable, msg),
-            tb=(bool, tb),
-            frame_depth=(int, frame_depth),
-        )
+        check_types(event=(LogEvent, event))
         _indent = "  " * self.indent
-        _lvl = self.level_to_str(lvl)
-        _time = str(asctime())
-        _line = str(_getframe(frame_depth).f_lineno).zfill(5)
-        _msg = str(msg)
-        if (tb) and (exc_info() == (None, None, None)):
-            warn(
+        _lvl = self.level_to_str(event.level)
+        _time = str(event.time)
+        _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
+        _msg = str(event.msg)
+        if (event.tb) and (sys.exc_info() == (None, None, None)):
+            warnings.warn(
                 "No traceback available, but tb=True",
                 UserWarning,
-                frame_depth - 1,
+                event.frame_depth - 1,
             )
-        _tb = ("\n" + traceback.format_exc()) if tb else ""
+        _tb = ("\n" + traceback.format_exc()) if event.tb else ""
         return (
             self.format.format(
                 indent=_indent,
@@ -493,7 +477,7 @@ class Logger:
         msg: Stringable,
         frame_depth: int,
         tb: bool,
-    ) -> int:
+    ) -> LogEvent:  # sourcery skip: remove-unnecessary-cast
         """
         Actually log the message. ONLY USE THIS INTERNALLY!
         ! THIS DOES *NOT* CHECK IF IT SHOULD BE LOGGED! THIS IS *NOT* IN THE
@@ -506,27 +490,27 @@ class Logger:
             tb (bool): Whether to include the traceback.
 
         Returns:
-            int: The number of characters written.
+            LogEvent: The log event.
         """
         check_types(
             lvl=(Levelable, lvl),
             msg=(Stringable, msg),
             frame_depth=(int, frame_depth),
+            tb=(bool, tb),
         )
-        self.list.append(
-            LogEvent(
-                msg=str(msg),
-                level=to_level(lvl, True),
-                time=time.time(),
-                indent=self.indent,
-                frame_depth=frame_depth,
-            )
+        event = LogEvent(
+            msg=str(msg),
+            level=to_level(lvl, True),
+            time=time.time(),
+            indent=self.indent,
+            frame_depth=frame_depth,
+            tb=bool(tb),
         )
-        with self.lock:
-            rv = self.stream.write(self.format_msg(lvl, msg, tb, frame_depth))
-        if self.flush:
-            self.stream.flush()
-        return rv
+        self.list.append(event)
+        # self.format_msg(lvl, msg, tb, frame_depth)
+        for handler in self.handlers:
+            handler.handle(self, event)
+        return event
 
     def _log(
         self,
@@ -534,7 +518,7 @@ class Logger:
         msg: Stringable,
         traceback: bool,
         frame_depth: int,
-    ) -> int:
+    ) -> Optional[LogEvent]:
         """
         Log the message. Checks if the logger is enabled, propagate, and stuff.
         This IS in the public api, but (unless you need it) use the methods
@@ -548,7 +532,7 @@ class Logger:
  your code, this (probably) should be 3.
 
         Returns:
-            int: The number of characters written.
+            Optional[LogEvent]: The log event if created.
         """
         check_types(
             lvl=(Levelable, lvl),
@@ -556,27 +540,27 @@ class Logger:
             traceback=(bool, traceback),
             frame_depth=(int, frame_depth),
         )
-        # Check if enabled
-        if self.enabled:
-            # Check if we should log it
-            if self.propagate:
-                # Check if we are root
-                if self.higher is None:  # Should not happen
-                    warn(
-                        "Root logger should not propagate! Set enabled to"
-                        " False if you want to disable it.",
-                        UserWarning,
-                        stacklevel=frame_depth - 1,
-                    )
-                    return 0
-                # Log with parent
-                return self.higher._log(lvl, msg, traceback, frame_depth + 1)
-            # Check if it's enabled
-            if not self.is_enabled_for(lvl):
-                return 0
-            # Log
-            return self._actually_log(lvl, msg, frame_depth, traceback)
-        return 0
+        # Check if disabled
+        if not self.enabled:
+            return None
+        # Check if we should log it
+        if self.propagate:
+            # Check if we are root
+            if self.higher is None:
+                warnings.warn(
+                    "Root logger should not propagate! Set enabled to"
+                    " False if you want to disable it.",
+                    UserWarning,
+                    stacklevel=frame_depth - 1,
+                )
+                return None
+            # Log with parent
+            return self.higher._log(lvl, msg, traceback, frame_depth + 1)
+        # Check if it's enabled
+        if not self.is_enabled_for(lvl):
+            return None
+        # Log
+        return self._actually_log(lvl, msg, frame_depth, traceback)
 
     def debug(self, msg: Stringable, traceback: bool = False) -> int:
         """
@@ -678,7 +662,7 @@ class Logger:
         check_types(lvl=(Levelable, lvl))
         lvl = to_level(lvl, True)
         if not isinstance(self.threshold, Level):
-            warn(
+            warnings.warn(
                 "Logger threshold should be a Level, not"
                 f" {type(self.threshold)!r} ({self.threshold!r})."
                 " Converting threshold...",
