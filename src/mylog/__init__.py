@@ -123,7 +123,7 @@ def _check_types_error(
         NoReturn: Never returns; raises.
     """
     raise TypeError(
-        f"{arg!r} must be type {expected!r}, got {type(got)!r}" f" ({got!r})"
+        f"{arg!r} must be type {expected!r}, got {type(got)!r} ({got!r})"
     )
 
 
@@ -452,7 +452,7 @@ class Logger:
                 "on_yellow",
                 ["bold", "underline", "blink"],
             )
-        return rv
+        return rv  # noqa: R504
 
     def level_to_str(self, lvl: Levelable) -> str:
         """
@@ -478,7 +478,7 @@ class Logger:
         if self.colors:
             rv = self._color(rv)
 
-        return rv
+        return rv  # noqa: R504
 
     def format_msg(self, event: LogEvent) -> str:
         """
@@ -551,7 +551,6 @@ class Logger:
             tb=bool(tb),
         )
         self.list.append(event)
-        # self.format_msg(lvl, msg, tb, frame_depth)
         for handler in self.handlers:
             handler.handle(self, event)
         return event

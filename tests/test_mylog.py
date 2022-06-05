@@ -33,10 +33,10 @@ def iterable_isinstance(iterable: Iterable[Any], cls: type) -> bool:
     return all(isinstance(x, cls) for x in iterable)
 
 
-def _randint(a: int, b: int) -> int:
+def _randint(__a: int, __b: int, /) -> int:
     # random.randint is used only here,
-    # so we have to use "nosec" (vvvvvvvvvvvv) only once
-    return secrets.SystemRandom().randint(a, b)  # nosec B311
+    # so we have to use "nosec" only once
+    return secrets.SystemRandom().randint(__a, __b)  # nosec B311
 
 
 def _randbytes(length: int) -> bytes:
@@ -95,13 +95,11 @@ def _random_nonlevel_int(
 def _random_level() -> Tuple[Union[mylog.Level, int, str], mylog.Level]:
     lvl = _randchoice(tuple(mylog.Level))
     _to = _randchoice(("lvl", "int", "str"))
-    if _to == "lvl":
-        return lvl, lvl
-    elif _to == "int":
-        return lvl.value, lvl
-    elif _to == "str":
-        return lvl.name, lvl
-    # else is not needed
+    return {
+        "lvl": (lvl, lvl),
+        "int": (lvl.value, lvl),
+        "str": (lvl.name, lvl),
+    }[_to]
 
 
 def random_anything(
@@ -123,19 +121,19 @@ def random_anything(
     return random_anything(only_if=only_if)  # pragma: no cover
 
 
-def x_is_y(x: object, y: object) -> bool:
+def x_is_y(__x: object, __y: object, /) -> bool:
     # So we don't get "do not compare types, use 'isinstance()' flake8(E721)"
-    return x is y
+    return __x is __y
 
 
-def x_equals_y(x: object, y: object) -> bool:
+def x_equals_y(__x: object, __y: object, /) -> bool:
     # So we test "==" AND "__eq__"
-    return (x == y) and (x.__eq__(y))
+    return (__x == __y) and (__x.__eq__(__y))
 
 
-def x_not_equals_y(x: object, y: object) -> bool:
+def x_not_equals_y(__x: object, __y: object, /) -> bool:
     # So we test "!=" AND "__ne__"
-    return (x != y) and (x.__ne__(y))
+    return (__x != __y) and (__x.__ne__(__y))
 
 
 def speed() -> float:
@@ -526,7 +524,7 @@ class TestLogger:
         assert event.frame_depth == frame_depth
 
     @staticmethod
-    @pytest.mark.parametrize(
+    @pytest.mark.parametrize(  # noqa: PT006
         "method_name,lvl",
         [
             ("debug", mylog.Level.debug),
