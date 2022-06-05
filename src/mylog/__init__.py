@@ -25,7 +25,7 @@ import traceback
 import uuid
 import warnings
 from enum import IntEnum
-from types import TracebackType
+from types import TracebackType, UnionType
 from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
 
 import termcolor
@@ -121,6 +121,38 @@ def _check_types_error(
     )
 
 
+def is_union(union: Any) -> bool:
+    """
+    Is `union` a Union?
+
+    >>> is_union(Union[int, str])
+    True
+
+    Args:
+        union (Any): The object to check.
+
+    Returns:
+        bool: True if `union` is a Union, False otherwise.
+    """
+    try:
+        return (
+            (type(union) is Union)
+            or (type(union) is UnionType)
+            or (union.__origin__ is Union)  # type: ignore
+        )
+    except AttributeError:
+        return False
+
+
+#    Actually: Union   vvv
+#                      ~~~
+def check_union(union: Any, got: Any) -> bool:
+    try:
+        return isinstance(got, union)
+    except TypeError:  # pragma: no cover
+        return any(isinstance(got, typ) for typ in union.__args__)
+
+
 def check_types(
     **kwargs: Tuple[Union[type, Tuple[type, ...]], Any]
 ) -> Literal[True]:
@@ -152,6 +184,10 @@ def check_types(
         Literal[True]: Always True.
     """
     for arg, (expected, got) in kwargs.items():
+        # ! This union thing is needed, because you cannot use isinstance with
+        # ! unions in python 3.9 and below.
+        if is_union(expected) and check_union(expected, got):
+            continue
         if not isinstance(got, expected):
             _check_types_error(arg, expected, got)
     return True
