@@ -215,7 +215,7 @@ class SetAttr:
         self.name = name
         self.new_value = new_value
 
-    def __enter__(self) -> Type["SetAttr"]:
+    def __enter__(self) -> "SetAttr":
         """
         Enter the context manager.
 
@@ -605,7 +605,9 @@ class Logger:
         # Log
         return self._actually_log(lvl, msg, frame_depth, traceback)
 
-    def debug(self, msg: Stringable, traceback: bool = False) -> int:
+    def debug(
+        self, msg: Stringable, traceback: bool = False
+    ) -> Optional[LogEvent]:
         """
         Log a debug message.
 
@@ -620,7 +622,9 @@ class Logger:
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.debug, msg, traceback, 4)
 
-    def info(self, msg: Stringable, traceback: bool = False) -> int:
+    def info(
+        self, msg: Stringable, traceback: bool = False
+    ) -> Optional[LogEvent]:
         """
         Log an info message.
 
@@ -635,7 +639,9 @@ class Logger:
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.info, msg, traceback, 4)
 
-    def warning(self, msg: Stringable, traceback: bool = False) -> int:
+    def warning(
+        self, msg: Stringable, traceback: bool = False
+    ) -> Optional[LogEvent]:
         """
         Log a warning message.
 
@@ -650,7 +656,9 @@ class Logger:
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.warning, msg, traceback, 4)
 
-    def error(self, msg: Stringable, traceback: bool = False) -> int:
+    def error(
+        self, msg: Stringable, traceback: bool = False
+    ) -> Optional[LogEvent]:
         """
         Log an error message.
 
@@ -665,7 +673,9 @@ class Logger:
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.error, msg, traceback, 4)
 
-    def critical(self, msg: Stringable, traceback: bool = False) -> int:
+    def critical(
+        self, msg: Stringable, traceback: bool = False
+    ) -> Optional[LogEvent]:
         """
         Log a critical/fatal message.
 
