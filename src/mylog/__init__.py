@@ -15,6 +15,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+__version__ = "0.3.0"
+
 import abc
 import contextlib
 import dataclasses
@@ -25,13 +27,17 @@ import traceback
 import uuid
 import warnings
 from enum import IntEnum
-from types import TracebackType, UnionType
+from types import TracebackType
 from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
 
 import termcolor
 from typing_extensions import Literal, Protocol, Type, runtime_checkable
 
-__version__ = "0.3.0"
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = type(Union[int, str])
+
 
 T = TypeVar("T")
 DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"
