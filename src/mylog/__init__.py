@@ -305,7 +305,8 @@ class StreamWriterHandler(Handler):
 
         Args:
             stream (StreamProtocol): The stream to write to.
-            flush (bool, optional): Flush the stream after writing to it? Defaults to True.
+            flush (bool, optional): Flush the stream after writing to it?\
+ Defaults to True.
             use_colors (bool, optional): Use colors? Defaults to True.
             format_msg (bool, optional): Format the message? Defaults to True.
         """
