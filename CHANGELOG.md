@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2022-06-06
+
+### Added
+
+- **! Added handlers! Added `Handler` ABC, `StreamWriterHandler`, `Logger.handlers`, `Logger.get_default_handlers`**
+- **Added `tb` to `LogEvent`**
+- Added `SetAttr`
+
+### Changed
+
+- **`Logger._inherit` does not have a parameter `lock`**
+- **`Logger.format_msg`'s signature looks like this: `format_msg(self, event: LogEvent) -> str`**
+- `Logger._actually_log`, `Logger._log`, and the log methods (debug, info, ...) now return `Optional[LogEvent]`
+
+### Removed
+
+- **! Removed `Logger.lock`, `Logger.flush`, `Logger.stream`**
+- **Removed `TeeStream`**
+- Removed `Lock`, `NoLock`
+
 ## [0.3.0] - 2022-05-07
 
 ### Added
