@@ -1,8 +1,8 @@
 import base64
 import secrets
-import sys
 from time import time as get_unix_time
-from typing import Callable, Sequence, Tuple, TypeVar, Union
+from types import SimpleNamespace
+from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
 
 import pytest
 import termcolor
@@ -11,25 +11,32 @@ import mylog
 
 T = TypeVar("T")
 
+mylog.root.handlers = [mylog.NoHandler()]
+
 
 class Stream:
     """A stream that can be used for testing. No output to stdout."""
 
     def __init__(self) -> None:
         self.wrote = ""
+        self.flushed = False
 
     def write(self, __s: str, /) -> int:
         self.wrote += __s
         return len(__s)
 
     def flush(self) -> None:
-        pass
+        self.flushed = True
 
 
-def _randint(a: int, b: int) -> int:
+def iterable_isinstance(iterable: Iterable[Any], cls: type) -> bool:
+    return all(isinstance(x, cls) for x in iterable)
+
+
+def _randint(__a: int, __b: int, /) -> int:
     # random.randint is used only here,
-    # so we have to use "nosec" (vvvvvvvvvvvv) only once
-    return secrets.SystemRandom().randint(a, b)  # nosec B311
+    # so we have to use "nosec" only once
+    return secrets.SystemRandom().randint(__a, __b)  # nosec B311
 
 
 def _randbytes(length: int) -> bytes:
@@ -65,9 +72,7 @@ def _random_bytes(
     return _random_bytes(only_if=only_if)  # pragma: no cover
 
 
-def _random_urlsafe(
-    *, only_if: Callable[[str], bool] = lambda _: True
-) -> str:
+def _random_urlsafe(*, only_if: Callable[[str], bool] = lambda _: True) -> str:
     tok = _random_bytes()
     rv = base64.urlsafe_b64encode(tok).rstrip(b"=").decode("ascii")
     if only_if(rv):
@@ -87,25 +92,19 @@ def _random_nonlevel_int(
     return _random_nonlevel_int(only_if=only_if)  # pragma: no cover
 
 
-def _random_level() -> Tuple[
-    Union[mylog.Level, int, str], mylog.Level
-]:
+def _random_level() -> Tuple[Union[mylog.Level, int, str], mylog.Level]:
     lvl = _randchoice(tuple(mylog.Level))
     _to = _randchoice(("lvl", "int", "str"))
-    if _to == "lvl":
-        return lvl, lvl
-    elif _to == "int":
-        return lvl.value, lvl
-    elif _to == "str":
-        return lvl.name, lvl
-    # else is not needed
+    return {
+        "lvl": (lvl, lvl),
+        "int": (lvl.value, lvl),
+        "str": (lvl.name, lvl),
+    }[_to]
 
 
 def random_anything(
     *,
-    only_if: Callable[
-        [Union[bytes, int, str]], bool
-    ] = lambda _: True,
+    only_if: Callable[[Union[bytes, int, str]], bool] = lambda _: True,
 ) -> Union[str, bytes, int]:
     rt = _randchoice(("hex", "bytes", "urlsafe", "int"))
     if rt == "hex":
@@ -122,19 +121,19 @@ def random_anything(
     return random_anything(only_if=only_if)  # pragma: no cover
 
 
-def x_is_y(x: object, y: object) -> bool:
+def x_is_y(__x: object, __y: object, /) -> bool:
     # So we don't get "do not compare types, use 'isinstance()' flake8(E721)"
-    return x is y
+    return __x is __y
 
 
-def x_equals_y(x: object, y: object) -> bool:
+def x_equals_y(__x: object, __y: object, /) -> bool:
     # So we test "==" AND "__eq__"
-    return (x == y) and (x.__eq__(y))
+    return (__x == __y) and (__x.__eq__(__y))
 
 
-def x_not_equals_y(x: object, y: object) -> bool:
+def x_not_equals_y(__x: object, __y: object, /) -> bool:
     # So we test "!=" AND "__ne__"
-    return (x != y) and (x.__ne__(y))
+    return (__x != __y) and (__x.__ne__(__y))
 
 
 def speed() -> float:
@@ -142,9 +141,7 @@ def speed() -> float:
     logger = mylog.root.get_child()
     logger.threshold = mylog.Level(10)
     logger.stream = Stream()
-    logger.critical(
-        "The quick brown fox jumps over the lazy dog.", False
-    )
+    logger.critical("The quick brown fox jumps over the lazy dog.", False)
     end = get_unix_time()
     return end - start
 
@@ -163,81 +160,40 @@ def test_to_level():
     assert mylog.to_level(mylog.Level.warning) == mylog.Level.warning
     assert mylog.to_level(mylog.Level.warn) == mylog.Level.warning
     assert mylog.to_level(mylog.Level.error) == mylog.Level.error
-    assert (
-        mylog.to_level(mylog.Level.critical) == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.critical) == mylog.Level.critical
     assert mylog.to_level(mylog.Level.fatal) == mylog.Level.critical
 
+    assert mylog.to_level(mylog.Level.debug.numerator) == mylog.Level.debug
+    assert mylog.to_level(mylog.Level.info.numerator) == mylog.Level.info
+    assert mylog.to_level(mylog.Level.warning.numerator) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.warn.numerator) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.error.numerator) == mylog.Level.error
     assert (
-        mylog.to_level(mylog.Level.debug.numerator)
-        == mylog.Level.debug
+        mylog.to_level(mylog.Level.critical.numerator) == mylog.Level.critical
     )
-    assert (
-        mylog.to_level(mylog.Level.info.numerator) == mylog.Level.info
-    )
-    assert (
-        mylog.to_level(mylog.Level.warning.numerator)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.warn.numerator)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.error.numerator)
-        == mylog.Level.error
-    )
-    assert (
-        mylog.to_level(mylog.Level.critical.numerator)
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(mylog.Level.fatal.numerator)
-        == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.fatal.numerator) == mylog.Level.critical
 
-    assert (
-        mylog.to_level(mylog.Level.debug.value) == mylog.Level.debug
-    )
+    assert mylog.to_level(mylog.Level.debug.value) == mylog.Level.debug
     assert mylog.to_level(mylog.Level.info.value) == mylog.Level.info
-    assert (
-        mylog.to_level(mylog.Level.warning.value)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.warn.value) == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.error.value) == mylog.Level.error
-    )
-    assert (
-        mylog.to_level(mylog.Level.critical.value)
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(mylog.Level.fatal.value)
-        == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.warning.value) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.warn.value) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.error.value) == mylog.Level.error
+    assert mylog.to_level(mylog.Level.critical.value) == mylog.Level.critical
+    assert mylog.to_level(mylog.Level.fatal.value) == mylog.Level.critical
 
     assert (
-        mylog.to_level(str(mylog.Level.debug.numerator))
-        == mylog.Level.debug
+        mylog.to_level(str(mylog.Level.debug.numerator)) == mylog.Level.debug
     )
-    assert (
-        mylog.to_level(str(mylog.Level.info.numerator))
-        == mylog.Level.info
-    )
+    assert mylog.to_level(str(mylog.Level.info.numerator)) == mylog.Level.info
     assert (
         mylog.to_level(str(mylog.Level.warning.numerator))
         == mylog.Level.warning
     )
     assert (
-        mylog.to_level(str(mylog.Level.warn.numerator))
-        == mylog.Level.warning
+        mylog.to_level(str(mylog.Level.warn.numerator)) == mylog.Level.warning
     )
     assert (
-        mylog.to_level(str(mylog.Level.error.numerator))
-        == mylog.Level.error
+        mylog.to_level(str(mylog.Level.error.numerator)) == mylog.Level.error
     )
     assert (
         mylog.to_level(str(mylog.Level.critical.numerator))
@@ -248,52 +204,25 @@ def test_to_level():
         == mylog.Level.critical
     )
 
+    assert mylog.to_level(str(mylog.Level.debug.value)) == mylog.Level.debug
+    assert mylog.to_level(str(mylog.Level.info.value)) == mylog.Level.info
     assert (
-        mylog.to_level(str(mylog.Level.debug.value))
-        == mylog.Level.debug
+        mylog.to_level(str(mylog.Level.warning.value)) == mylog.Level.warning
     )
+    assert mylog.to_level(str(mylog.Level.warn.value)) == mylog.Level.warning
+    assert mylog.to_level(str(mylog.Level.error.value)) == mylog.Level.error
     assert (
-        mylog.to_level(str(mylog.Level.info.value))
-        == mylog.Level.info
+        mylog.to_level(str(mylog.Level.critical.value)) == mylog.Level.critical
     )
-    assert (
-        mylog.to_level(str(mylog.Level.warning.value))
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.warn.value))
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.error.value))
-        == mylog.Level.error
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.critical.value))
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(str(mylog.Level.fatal.value))
-        == mylog.Level.critical
-    )
+    assert mylog.to_level(str(mylog.Level.fatal.value)) == mylog.Level.critical
 
     assert mylog.to_level(mylog.Level.debug.name) == mylog.Level.debug
     assert mylog.to_level(mylog.Level.info.name) == mylog.Level.info
-    assert (
-        mylog.to_level(mylog.Level.warning.name)
-        == mylog.Level.warning
-    )
-    assert (
-        mylog.to_level(mylog.Level.warn.name) == mylog.Level.warning
-    )
+    assert mylog.to_level(mylog.Level.warning.name) == mylog.Level.warning
+    assert mylog.to_level(mylog.Level.warn.name) == mylog.Level.warning
     assert mylog.to_level(mylog.Level.error.name) == mylog.Level.error
-    assert (
-        mylog.to_level(mylog.Level.critical.name)
-        == mylog.Level.critical
-    )
-    assert (
-        mylog.to_level(mylog.Level.fatal.name) == mylog.Level.critical
-    )
+    assert mylog.to_level(mylog.Level.critical.name) == mylog.Level.critical
+    assert mylog.to_level(mylog.Level.fatal.name) == mylog.Level.critical
 
     with pytest.raises(ValueError, match="Invalid level"):
         mylog.to_level(_random_nonlevel_int())
@@ -323,13 +252,6 @@ def test_to_level():
     assert mylog.to_level(nli, True) == nli
 
 
-def test_nolock():
-    nolock = mylog.NoLock()
-
-    assert nolock.__enter__() in {True, False, 1}
-    assert nolock.__exit__(None, None, None) is None
-
-
 def test_nonetype():
     assert x_is_y(mylog.NoneType, type(None))
 
@@ -337,9 +259,7 @@ def test_nonetype():
 def test_check_types():
     assert mylog.check_types(a=(int, 1), b=(str, "2")) is True
     assert (
-        mylog.check_types(
-            arg_1=((int, float), 1), b_8=(str, "Hello world")
-        )
+        mylog.check_types(arg_1=((int, float), 1), b_8=(str, "Hello world"))
         is True
     )
     assert mylog.check_types(do=(bool, True)) is True
@@ -355,6 +275,53 @@ def test_check_types():
         r" <class 'float'> \(6.9\)",
     ):
         mylog.check_types(do=(bool, False), sure=((bool, int), 6.9))
+
+
+def test_setattr():
+    original = random_anything()
+    new = random_anything()
+    obj = SimpleNamespace(exampleattr=original)
+
+    with mylog.SetAttr(obj, "exampleattr", new):
+        assert obj.exampleattr == new
+
+    assert obj.exampleattr == original
+
+
+def test_stream_writer_handler():
+    stream = Stream()
+    handler = mylog.StreamWriterHandler(stream, flush=True)
+    logger = mylog.root.get_child()
+    logger.handlers = [handler]
+    event = mylog.LogEvent(
+        random_anything(),
+        _random_level()[0],
+        _random_int(False),
+        _random_int(False),
+        1,
+        False,
+    )
+
+    handler.handle(logger, event)
+    assert stream.wrote
+    assert stream.flushed
+
+    stream = Stream()
+    handler = mylog.StreamWriterHandler(stream, flush=False)
+    logger = mylog.root.get_child()
+    logger.handlers = [handler]
+    event = mylog.LogEvent(
+        random_anything(),
+        _random_level()[0],
+        _random_int(False),
+        _random_int(False),
+        1,
+        False,
+    )
+
+    handler.handle(logger, event)
+    assert stream.wrote
+    assert not stream.flushed
 
 
 class TestLogger:
@@ -375,6 +342,12 @@ class TestLogger:
         assert l1.__ne__(object()) == NotImplemented
 
     @staticmethod
+    def test_get_default_handlers():
+        _handlers = mylog.root.get_default_handlers()
+        assert isinstance(_handlers, list)
+        assert iterable_isinstance(_handlers, mylog.Handler)
+
+    @staticmethod
     def test_init():
         with pytest.raises(
             ValueError,
@@ -382,21 +355,18 @@ class TestLogger:
         ):
             mylog.Logger(higher=None)
 
-        lock = mylog.NoLock()
         # Don't set `_allow_root` in production code
         mylog._allow_root = True
-        logger = mylog.Logger(None, lock=lock)
+        logger = mylog.Logger(None)
         mylog._allow_root = False
 
         assert logger.higher is None
         assert logger.propagate is False
-        assert logger.lock == lock
         assert logger.list == []
 
         assert logger.format == mylog.DEFAULT_FORMAT
         assert logger.threshold == mylog.DEFAULT_THRESHOLD
         assert logger.enabled is True
-        assert logger.stream == sys.stdout
         assert logger.indent == 0
 
     @staticmethod
@@ -425,32 +395,28 @@ class TestLogger:
     @staticmethod
     def test_level_to_string():
         logger = mylog.root
-        assert logger.level_to_str(
-            mylog.Level.debug
-        ) == termcolor.colored("DEBUG".ljust(8), "blue")
-        assert logger.level_to_str(
-            mylog.Level.info
-        ) == termcolor.colored("INFO".ljust(8), "cyan")
-        assert logger.level_to_str(
-            mylog.Level.warning
-        ) == termcolor.colored("WARNING".ljust(8), "yellow")
-        assert logger.level_to_str(
-            mylog.Level.warn
-        ) == termcolor.colored("WARNING".ljust(8), "yellow")
-        assert logger.level_to_str(
-            mylog.Level.error
-        ) == termcolor.colored("ERROR".ljust(8), "red")
-        assert logger.level_to_str(
-            mylog.Level.critical
-        ) == termcolor.colored(
+        assert logger.level_to_str(mylog.Level.debug) == termcolor.colored(
+            "DEBUG".ljust(8), "blue"
+        )
+        assert logger.level_to_str(mylog.Level.info) == termcolor.colored(
+            "INFO".ljust(8), "cyan"
+        )
+        assert logger.level_to_str(mylog.Level.warning) == termcolor.colored(
+            "WARNING".ljust(8), "yellow"
+        )
+        assert logger.level_to_str(mylog.Level.warn) == termcolor.colored(
+            "WARNING".ljust(8), "yellow"
+        )
+        assert logger.level_to_str(mylog.Level.error) == termcolor.colored(
+            "ERROR".ljust(8), "red"
+        )
+        assert logger.level_to_str(mylog.Level.critical) == termcolor.colored(
             "CRITICAL".ljust(8),
             "red",
             "on_yellow",
             ["bold", "underline", "blink"],
         )
-        assert logger.level_to_str(
-            mylog.Level.fatal
-        ) == termcolor.colored(
+        assert logger.level_to_str(mylog.Level.fatal) == termcolor.colored(
             "CRITICAL".ljust(8),
             "red",
             "on_yellow",
@@ -463,23 +429,17 @@ class TestLogger:
     def test_format_msg():
         logger = mylog.root
         lvl = _random_level()
+        event = mylog.LogEvent(random_anything(), lvl[0], 0, 0, 0, False)
+
         # Check if it runs
         for _ in range(10):
-            logger.format_msg(
-                lvl[0],
-                random_anything(),
-                False,
-                _randint(0, 3),
-            )
+            logger.format_msg(event)
+
+        event.tb = True
         with pytest.warns(
             UserWarning, match="No traceback available, but tb=True"
         ):
-            logger.format_msg(
-                lvl[0],
-                random_anything(),
-                True,
-                _randint(0, 3),
-            )
+            logger.format_msg(event)
 
     @staticmethod
     def test_actually_log():
@@ -538,9 +498,7 @@ class TestLogger:
             UserWarning, match="Root logger should not propagate"
         ):
             mylog.root.propagate = True
-            mylog.root._log(
-                _random_level()[0], random_anything(), False, 2
-            )
+            mylog.root._log(_random_level()[0], random_anything(), False, 2)
             mylog.root.propagate = False
 
     @staticmethod
@@ -566,7 +524,7 @@ class TestLogger:
         assert event.frame_depth == frame_depth
 
     @staticmethod
-    @pytest.mark.parametrize(
+    @pytest.mark.parametrize(  # noqa: PT006
         "method_name,lvl",
         [
             ("debug", mylog.Level.debug),
@@ -601,14 +559,12 @@ class TestLogger:
 
         assert isinstance(child, type(parent))
         assert child.propagate is False
-        assert isinstance(child.lock, mylog.Lock)
         assert child.list == []
         assert child.indent == 0
         assert child.enabled is True
 
         assert child.format == parent.format
         assert child.threshold == parent.threshold
-        assert child.stream == parent.stream
 
     @staticmethod
     def test_is_enabled_for():
@@ -697,15 +653,3 @@ def test_change_threshold():
         assert logger.threshold == new[1]
 
     assert logger.threshold == start[1]
-
-
-def test_tee():
-    streams = [Stream(), Stream()]
-    logger = mylog.root.get_child()
-    tee = mylog.TeeStream(*streams)
-    logger.stream = tee
-    logger.format = "{msg}"
-    msg = random_anything()
-    logger.critical(msg)
-    assert streams[0].wrote == str(msg) + "\n"
-    assert streams[1].wrote == str(msg) + "\n"

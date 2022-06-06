@@ -5,6 +5,7 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/koviubi56/mylog/main.svg)](https://results.pre-commit.ci/latest/github/koviubi56/mylog/main)
 [![Build Status](https://app.travis-ci.com/koviubi56/mylog.svg?branch=main)](https://app.travis-ci.com/koviubi56/mylog)
 [![codecov](https://codecov.io/gh/koviubi56/mylog/branch/main/graph/badge.svg?token=PFHDLZJMVL)](https://codecov.io/gh/koviubi56/mylog)
+[![Linting](https://github.com/koviubi56/mylog/actions/workflows/linting.yml/badge.svg)](https://github.com/koviubi56/mylog/actions/workflows/linting.yml)
 
 A simple logging library for Python.
 
@@ -87,21 +88,17 @@ Union[Level, Stringable, int]
 
 Converts an int/str/something to a Level. If `lvl` cannot be converted, and `int_ok` is True, the int will be returned.
 
-### _protocol_ `Lock`
-
-A class that has a `__enter__` and `__exit__` method.
-
-### _class_ `NoLock`(blocking: _bool_ = True, timeout: _float_ = -1)
-
-A "Lock" that does nothing.
-
 ### _type alias_ `NoneType`
 
 ```py
 type(None)
 ```
 
-### _class_ `LogEvent`(msg: _str_, level: _Level_, time: _float_, indent: _int_, frame-depth: _int_)
+### _context manager_ `SetAttr`(obj: _object_, name: _str_, new-value: _Any_)
+
+A context manager for setting and then resetting an attribute.
+
+### _class_ `LogEvent`(msg: _str_, level: _Level_, time: _float_, indent: _int_, frame-depth: _int_, tb: _bool_)
 
 A log event.
 Time is in UNIX seconds.
@@ -110,21 +107,19 @@ Time is in UNIX seconds.
 
 A class that has a `write` and a `flush` method.
 
-### _class_ `TeeStream`(\*streams: _StreamProtocol_)
+### _ABC_ `Handler`
 
-A stream that writes to and flushes multiple streams.
+An abstract base class for that has a method `handle`.
 
-#### Methods
+### _class_ `NoHandler`
 
-##### `write`(\_\_s: _str_, /) -> _int_
+A handler that does nothing.
 
-Writes `__s` to all streams. Returns `len(__s)`.
+### _class_ `StreamWriterHandler`(stream: _StreamProtocol_, \*, flush: _bool_ = True, use-colors: _bool_ = True, format-msg: _bool_ = True)
 
-##### `flush`() -> _None_
+A handler that writes to a stream.
 
-Flushes all streams.
-
-### _class_ `Logger`(higher: _Optional[Logger]_, \*, lock: _Optional[Lock]_ = None)
+### _class_ `Logger`(higher: _Optional[Logger]_)
 
 The logger class.
 
@@ -142,19 +137,23 @@ Colorizes a string.
 
 #### Methods
 
-##### `_inherit`(lock: _Optional[Lock]_) -> _None_
+##### `_inherit`() -> _None_
 
 Inherit from `self.higher` (_"parent"_).
+
+##### `get_default_handlers`() -> _List[Handler]_
+
+Get the default handlers.
 
 ##### `level_to_str`(lvl: _Levelable_) -> _str_
 
 Convert a level to a string.
 
-##### `format_msg`(lvl: _Levelable_, msg: _Stringable_, tb: _bool_, frame-depth: _int_) -> _str_
+##### `format_msg`(event: _LogEvent_) -> _str_
 
 Format the message.
 
-##### `_log`(lvl: _Levelable_, msg: _Stringable_, tb: _bool_, frame-depth: _int_) -> _int_
+##### `_log`(lvl: _Levelable_, msg: _Stringable_, tb: _bool_, frame-depth: _int_) -> _Optional[LogEvent]_
 
 Log a message.
 
