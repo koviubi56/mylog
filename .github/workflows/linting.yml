@@ -1,5 +1,8 @@
 name: "Linting"
 
+# ! Please note, that if you want to contribute to this
+# ! workflow, you should contact @koviubi56 !
+
 on: [pull_request, push]
 
 jobs:
