@@ -196,4 +196,6 @@ Please make sure to update tests as appropriate.
 
 ## License
 
-[GNU LGPLv3.0+](https://www.gnu.org/licenses/lgpl-3.0.en.html)
+[GNU LGPLv3.0+](LICENSE)
+
+**Please note, that by contributing to mylog, you accept the DCO. [More info](CONTRIBUTING.md#dco)**
