@@ -40,7 +40,7 @@ except ImportError:
 
 
 T = TypeVar("T")
-DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"
+DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"  # noqa: FS003
 
 
 class Level(IntEnum):
