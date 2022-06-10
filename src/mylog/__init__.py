@@ -34,7 +34,7 @@ import termcolor
 from typing_extensions import Literal, Protocol, Type, runtime_checkable
 
 try:
-    from types import UnionType
+    from types import UnionType  # novermin
 except ImportError:
     UnionType = type(Union[int, str])
 
