@@ -230,6 +230,14 @@ class SetAttr:
         """Exit the context manager."""
         setattr(self.obj, self.name, self.old_value)
 
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
+            f"(obj={self.obj!r},"
+            f" name={self.name!r},"
+            f" new_value={self.new_value!r})"
+        )
+
 
 @dataclasses.dataclass
 class LogEvent:
@@ -288,6 +296,9 @@ class NoHandler(Handler):
             event (LogEvent): The event.
         """
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__module__}.{self.__class__.__qualname__}()"
+
 
 class StreamWriterHandler(Handler):
     """A handler to write to a stream."""
@@ -339,6 +350,15 @@ class StreamWriterHandler(Handler):
         if self.flush:
             self.stream.flush()
 
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
+            f"(stream={self.stream!r},"
+            f" flush={self.flush!r},"
+            f" use_colors={self.use_colors!r},"
+            f" format_msg={self.format_msg!r})"
+        )
+
 
 class Logger:
     """THE logger class. You shouldn't really call __init__; use the root\
@@ -362,6 +382,12 @@ class Logger:
         ):
             return self._id != __o._id
         return NotImplemented
+
+    def __repr__(self) -> str:
+        return (
+            f"<Logger {self.__class__.__module__}."
+            f"{self.__class__.__qualname__} with id {self._id}>"
+        )
 
     def _inherit(self) -> None:
         # Made a separate function so it can be overwritten
@@ -764,6 +790,12 @@ class IndentLogger:
         """
         self.logger.indent -= 1
 
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
+            f"(logger={self.logger!r})"
+        )
+
 
 class ChangeThreshold:
     """Change the threshold for a logger."""
@@ -806,6 +838,13 @@ class ChangeThreshold:
             tb (TracebackType): The traceback.
         """
         self.logger.threshold = self.old_level
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
+            f"(logger={self.logger!r},"
+            f" level={self.level!r})"
+        )
 
 
 _allow_root = True
