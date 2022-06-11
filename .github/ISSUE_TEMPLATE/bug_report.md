@@ -24,5 +24,6 @@ Python version: <!-- Something like "3.9" -->
 
 ---
 
-- [ ] I read the [code of conduct](CODE_OF_CONDUCT.md)
-- [ ] I read the [contributing guidlines](CONTRIBUTING.md)
+- [ ] I agree to the [code of conduct](CODE_OF_CONDUCT.md)
+- [ ] I agree to the [contributing guidlines](CONTRIBUTING.md)
+- [ ] I agree to the [DCO](CONTRIBUTING.md#dco)

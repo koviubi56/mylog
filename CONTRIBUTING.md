@@ -2,6 +2,8 @@
 
 First off, thank you for considering contributing.
 
+**Please note, that by contributing to our project you agree to the DCO! [More info](#dco)**
+
 ## Why is this guildline exists?
 
 Following these guidelines helps to communicate that you respect the time of
@@ -24,11 +26,12 @@ documentation, submitting bug reports and feature requests or writing code.
 - Search open **and closed** issues **and** pull requests.
 - Please, **don't** open an issue for questions. Ask it in the discussions tab!
 - Make sure to put an X to the square brackets at the end of the issue, if you
-  read the contributing guidlines, and the code of conduct. **If you don't put
-  an X to all of them, your issue will be closed!**
+  agree to the contributing guidlines, and the code of conduct.
+  **If you don't put an X to all of them, your issue will be closed!**
 
 ## Pull requests
 
+- **Read and agree to the DCO. [More info](#dco)**
 - Note the [Code of Conduct](CODE_OF_CONDUCT.md).
 - Create an issue first.
 - Wait until a maintainer accepts it.
@@ -72,3 +75,53 @@ dealing with a security issue. _Note that even if you answer "no" to both
 questions, you may still be dealing with a security issue._
 
 How to report them can be found in the [SECURITY.md](SECURITY.md) file.
+
+## DCO
+
+By contributing, committing, and/or pushing to mylog ("our project") the contributor ("you") MUST fully understand and fully agree to the whole Developer Certificate of Origin ("DCO").
+
+Contributing to our project in any way means that you fully understand and fully agree to the whole DCO; that you fully certify (a), or fully certify (b), or fully certify (c); and fully certify (d) of the DCO.
+
+If you do not fully understand and fully agree to the DCO, you may not and MUST NOT contribute to our project.
+
+Contributions and pull requests may be rejected if you do not fully understand and fully agree to the whole DCO.
+
+A copy of the DCO can be read at <https://developercertificate.org/> or here:
+
+> Developer Certificate of Origin
+> Version 1.1
+>
+> Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+>
+> Everyone is permitted to copy and distribute verbatim copies of this
+> license document, but changing it is not allowed.
+>
+> Developer's Certificate of Origin 1.1
+>
+> By making a contribution to this project, I certify that:
+>
+> (a) The contribution was created in whole or in part by me and I
+> have the right to submit it under the open source license
+> indicated in the file; or
+>
+> (b) The contribution is based upon previous work that, to the best
+> of my knowledge, is covered under an appropriate open source
+> license and I have the right under that license to submit that
+> work with modifications, whether created in whole or in part
+> by me, under the same open source license (unless I am
+> permitted to submit under a different license), as indicated
+> in the file; or
+>
+> (c) The contribution was provided directly to me by some other
+> person who certified (a), (b) or (c) and I have not modified
+> it.
+>
+> (d) I understand and agree that this project and the contribution
+> are public and that a record of the contribution (including all
+> personal information I submit with it, including my sign-off) is
+> maintained indefinitely and may be redistributed consistent with
+> this project or the open source license(s) involved.
+
+- _"this project"_ refers to mylog, "our project".
+- _"contribution"_ refers to any contribution, committing, and/or pushing to our project.
+- _"contributor"_, _"I"_, and _"me"_ refer to the person who made the contribution.
