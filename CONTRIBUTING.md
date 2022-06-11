@@ -78,13 +78,19 @@ How to report them can be found in the [SECURITY.md](SECURITY.md) file.
 
 ## DCO
 
-By contributing, committing, and/or pushing to mylog ("our project") the contributor ("you") MUST fully understand and fully agree to the whole Developer Certificate of Origin ("DCO").
+- _"our project"_ and _"this project"_ refer to mylog.
+- _"contribution"_ refers to any contribution, committing, and/or pushing to our project.
+- _"contributor"_, _"you"_, _"I"_, and _"me"_ refer to the person who made the contribution.
+- _"DCO"_ refers to the Developer Certificate of Origin.
+- Please note, that [the amendments](#dco-amendments) apply!
 
-Contributing to our project in any way means that you fully understand and fully agree to the whole DCO; that you fully certify (a), or fully certify (b), or fully certify (c); and fully certify (d) of the DCO.
+By contributing, committing, and/or pushing to our project you MUST fully understand and fully agree to the whole DCO including its amendments stated here.
 
-If you do not fully understand and fully agree to the DCO, you may not and MUST NOT contribute to our project.
+Contributing to our project in any way means that you fully understand and fully agree to the whole DCO including its amendments stated here.
 
-Contributions and pull requests may be rejected if you do not fully understand and fully agree to the whole DCO.
+If you do not fully understand and fully agree to the DCO including its amendments stated here, you may not and MUST NOT contribute to our project.
+
+Contributions and pull requests may be rejected if you do not fully understand and fully agree to the whole DCO including its amendments stated here.
 
 A copy of the DCO can be read at <https://developercertificate.org/> or here:
 
@@ -122,6 +128,15 @@ A copy of the DCO can be read at <https://developercertificate.org/> or here:
 > maintained indefinitely and may be redistributed consistent with
 > this project or the open source license(s) involved.
 
-- _"this project"_ refers to mylog, "our project".
-- _"contribution"_ refers to any contribution, committing, and/or pushing to our project.
-- _"contributor"_, _"I"_, and _"me"_ refer to the person who made the contribution.
+### DCO amendments
+
+Please note, that these amendments are not made by the Linux Foundation, and they are not part of the official DCO, but you still MUST fully understand and fully agree to them.
+
+| Number                      | Letter |
+| --------------------------- | ------ |
+| [1st](#dco-amendment-first) | (e)    |
+
+#### DCO amendment first
+
+> (e) I understand and agree that I may not get credit for any
+> of my contributions to this project.
