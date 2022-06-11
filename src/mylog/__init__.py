@@ -230,7 +230,7 @@ class SetAttr:
         """Exit the context manager."""
         setattr(self.obj, self.name, self.old_value)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return (
             f"{self.__class__.__module__}.{self.__class__.__qualname__}"
             f"(obj={self.obj!r},"
@@ -296,7 +296,7 @@ class NoHandler(Handler):
             event (LogEvent): The event.
         """
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return f"{self.__class__.__module__}.{self.__class__.__qualname__}()"
 
 
@@ -350,7 +350,7 @@ class StreamWriterHandler(Handler):
         if self.flush:
             self.stream.flush()
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return (
             f"{self.__class__.__module__}.{self.__class__.__qualname__}"
             f"(stream={self.stream!r},"
@@ -383,7 +383,7 @@ class Logger:
             return self._id != __o._id
         return NotImplemented
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return (
             f"<Logger {self.__class__.__module__}."
             f"{self.__class__.__qualname__} with id {self._id}>"
@@ -790,7 +790,7 @@ class IndentLogger:
         """
         self.logger.indent -= 1
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return (
             f"{self.__class__.__module__}.{self.__class__.__qualname__}"
             f"(logger={self.logger!r})"
@@ -839,7 +839,7 @@ class ChangeThreshold:
         """
         self.logger.threshold = self.old_level
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pragma: no cover
         return (
             f"{self.__class__.__module__}.{self.__class__.__qualname__}"
             f"(logger={self.logger!r},"
