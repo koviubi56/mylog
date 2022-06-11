@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2022-06-11
+
 ### Added
 
 - Added `__repr__` to `SetAttr`, `NoHandler`, `StreamWriterHandler`, `Logger`, `IndentLogger`, and `ChangeThreshold`
