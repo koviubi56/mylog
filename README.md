@@ -48,7 +48,7 @@ logger.info("Hello, world!")
 
 **Warning!** This is only the public API!
 
-**WARNING!** If you see a `-` (minus/dash/hyphen) in an argument name, **it is a `_` (underscore)!**
+**WARNING!** If you see a `-` (minus/dash/hyphen) in an argument name, **it is an `_` (underscore)!**
 
 ### _variable_ `__version__`
 
