@@ -33,6 +33,11 @@ from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
 import termcolor
 from typing_extensions import Literal, Protocol, Type, runtime_checkable
 
+with contextlib.suppress(Exception):
+    import colorama
+
+    colorama.init()
+
 try:
     from types import UnionType  # novermin
 except ImportError:
