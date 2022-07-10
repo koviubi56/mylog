@@ -651,7 +651,7 @@ class Logger:
             int: The number of characters written.
         """
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
-        return self._log(Level.debug, msg, traceback, 4)
+        return self._log(Level.debug, msg, traceback, 5)
 
     def info(
         self, msg: Stringable, traceback: bool = False
@@ -668,7 +668,7 @@ class Logger:
             int: The number of characters written.
         """
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
-        return self._log(Level.info, msg, traceback, 4)
+        return self._log(Level.info, msg, traceback, 5)
 
     def warning(
         self, msg: Stringable, traceback: bool = False
@@ -685,7 +685,7 @@ class Logger:
             int: The number of characters written.
         """
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
-        return self._log(Level.warning, msg, traceback, 4)
+        return self._log(Level.warning, msg, traceback, 5)
 
     def error(
         self, msg: Stringable, traceback: bool = False
@@ -702,7 +702,7 @@ class Logger:
             int: The number of characters written.
         """
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
-        return self._log(Level.error, msg, traceback, 4)
+        return self._log(Level.error, msg, traceback, 5)
 
     def critical(
         self, msg: Stringable, traceback: bool = False
@@ -719,7 +719,7 @@ class Logger:
             int: The number of characters written.
         """
         check_types(msg=(Stringable, msg), traceback=(bool, traceback))
-        return self._log(Level.critical, msg, traceback, 4)
+        return self._log(Level.critical, msg, traceback, 5)
 
     def get_child(self) -> "Logger":
         """
