@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0-beta.1] - 2022-07-10
+
+### Added
+
+- **Added an "optional" `colorama.init()` call. mylog tries to import colorama, and call `colorama.init()`, but if there's an exception, it will be ignored.**
+
+### Fixed
+
+- **Fixed frame depth with debug, info, warning, error, and critical. Changed from 4 to 5.**
+
 ## [0.5.0] - 2022-06-11
 
 ### Added
