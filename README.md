@@ -18,7 +18,7 @@ A simple logging library for Python.
 
 ## Example/Getting started
 
-First, install it with `pip install git+https://github.com/koviubi56/mylog.git`. [_Need more help?_](https://packaging.python.org/en/latest/tutorials/installing-packages/)
+First, install it with `pip install python-mylog`. [_Need more help?_](https://packaging.python.org/en/latest/tutorials/installing-packages/)
 
 _For demonstration purposes only! Output may not be the same as shown here!_
 
