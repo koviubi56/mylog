@@ -31,7 +31,7 @@ from types import TracebackType
 from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
 
 import termcolor
-from typing_extensions import Literal, Protocol, Type, runtime_checkable
+from typing import Literal, Protocol, Type, runtime_checkable
 
 try:
     from types import UnionType  # novermin
