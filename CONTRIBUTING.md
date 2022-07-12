@@ -26,12 +26,12 @@ documentation, submitting bug reports and feature requests or writing code.
 - Search open **and closed** issues **and** pull requests.
 - Please, **don't** open an issue for questions. Ask it in the discussions tab!
 - Make sure to put an X to the square brackets at the end of the issue, if you
-  agree to the contributing guidlines, and the code of conduct.
+  agree to the contributing guidlines, the code of conduct, and the DCO.
   **If you don't put an X to all of them, your issue will be closed!**
 
 ## Pull requests
 
-- **Read and agree to the DCO. [More info](#dco)**
+- **Read, understand, and agree to the DCO. [More info](#dco)**
 - Note the [Code of Conduct](CODE_OF_CONDUCT.md).
 - Create an issue first.
 - Wait until a maintainer accepts it.
