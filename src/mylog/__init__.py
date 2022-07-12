@@ -28,10 +28,10 @@ import uuid
 import warnings
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
+from typing import (Any, List, Literal, NoReturn, Optional, Protocol, Tuple,
+                    Type, TypeVar, Union, runtime_checkable)
 
 import termcolor
-from typing import Literal, Protocol, Type, runtime_checkable
 
 try:
     from types import UnionType  # novermin
