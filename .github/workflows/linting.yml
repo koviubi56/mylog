@@ -76,12 +76,6 @@ jobs:
           python3 -m pip install -U autoflake
           python3 -m autoflake -c -r -v .
 
-      - id: "isort"
-        name: "Run isort"
-        run: |
-          python3 -m pip install -U isort
-          python3 -m isort -c .
-
       - id: "black"
         name: "Run black"
         run: |
