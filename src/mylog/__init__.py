@@ -28,22 +28,28 @@ import uuid
 import warnings
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, List, NoReturn, Optional, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    List,
+    Literal,
+    NoReturn,
+    Optional,
+    Protocol,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 import termcolor
-from typing_extensions import Literal, Protocol, Type, runtime_checkable
 
 with contextlib.suppress(Exception):
     import colorama
 
     colorama.init()
 
-try:
-    from types import UnionType  # novermin
-except ImportError:
-    UnionType = type(Union[int, str])
-
-
+UnionType = type(Union[int, str])
 T = TypeVar("T")
 DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"  # noqa: FS003
 
