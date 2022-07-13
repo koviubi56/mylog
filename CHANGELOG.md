@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2022-07-13
 
+_Changed from pre-releases are listed here._
+
+### Added
+
+- **Added an "optional" `colorama.init()` call. mylog tries to import colorama, and call `colorama.init()`, but if there's an exception, it will be ignored.**
+
 ### Removed
 
 - **`typing-extensions` is not being used; it is not a dependency**
+
+### Fixed
+
+- **Fixed frame depth with debug, info, warning, error, and critical. Changed from 4 to 5.**
 
 ## [0.6.0-beta.1] - 2022-07-10
 
