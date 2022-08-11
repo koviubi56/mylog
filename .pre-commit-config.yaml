@@ -45,7 +45,6 @@ repos:
             "flake8-bugbear",
             "flake8-builtins",
             "flake8-comprehensions",
-            "dlint",
             "flake8-bandit",
           ]
 
