@@ -37,7 +37,7 @@ jobs:
       - id: "flake8"
         name: "Run flake8"
         run: |
-          python3 -m pip install -U flake8 flake8-2020 flake8-bugbear flake8-builtins flake8-comprehensions flake8-bandit
+          python3 -m pip install -U flake8 flake8-2020 flake8-bugbear flake8-builtins flake8-comprehensions
           python3 -m flake8 --count --extend-exclude=*venv* --show-source --statistics -v
 
       - id: "pyupgrade"
