@@ -637,10 +637,11 @@ class Logger:
             # Log with parent
             return self.higher._log(lvl, msg, traceback, frame_depth + 1)
         # Check if it's enabled
-        if not self.is_enabled_for(lvl):
-            return None
-        # Log
-        return self._actually_log(lvl, msg, frame_depth, traceback)
+        return (
+            self._actually_log(lvl, msg, frame_depth, traceback)
+            if self.is_enabled_for(lvl)
+            else None
+        )
 
     def debug(
         self, msg: Stringable, traceback: bool = False
