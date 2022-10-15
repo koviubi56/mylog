@@ -56,6 +56,7 @@ repos:
     rev: v2.0.0
     hooks:
       - id: setup-cfg-fmt
+        args: ["--include-version-classifiers"]
   - repo: https://github.com/regebro/pyroma
     rev: "4.0"
     hooks:
