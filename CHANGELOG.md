@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2022-10-22
+
 ## Changed
 
 - **Renamed `Logger._color` to `Logger.color`** ([`26ee19f`](https://github.com/koviubi56/mylog/commit/26ee19f7255397d774d2e2439e927318a8bb3dac#diff-134a3f0dfece1d8aef44db6e6c1f05dbb0c904328960638685919788921d38d3L362-R382))
