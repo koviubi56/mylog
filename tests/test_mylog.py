@@ -256,27 +256,6 @@ def test_nonetype():
     assert x_is_y(mylog.NoneType, type(None))
 
 
-def test_check_types():
-    assert mylog.check_types(a=(int, 1), b=(str, "2")) is True
-    assert (
-        mylog.check_types(arg_1=((int, float), 1), b_8=(str, "Hello world"))
-        is True
-    )
-    assert mylog.check_types(do=(bool, True)) is True
-    with pytest.raises(
-        TypeError,
-        match=r"'do' must be type <class 'bool'>, got <class 'NoneType'>"
-        r" \(None\)",
-    ):
-        mylog.check_types(do=(bool, None))
-    with pytest.raises(
-        TypeError,
-        match=r"'sure' must be type \(<class 'bool'>, <class 'int'>\), got"
-        r" <class 'float'> \(6.9\)",
-    ):
-        mylog.check_types(do=(bool, False), sure=((bool, int), 6.9))
-
-
 def test_setattr():
     original = random_anything()
     new = random_anything()

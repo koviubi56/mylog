@@ -31,11 +31,8 @@ from types import TracebackType
 from typing import (
     Any,
     List,
-    Literal,
-    NoReturn,
     Optional,
     Protocol,
-    Tuple,
     Type,
     TypeVar,
     Union,
@@ -114,100 +111,6 @@ def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
 
 
 NoneType = type(None)
-
-
-def _check_types_error(
-    arg: str, expected: Union[type, Tuple[type, ...]], got: Any
-) -> NoReturn:
-    """
-    Raise a TypeError with the correct message.
-
-    Args:
-        arg (str): The argument name.
-        expected (Union[type, Tuple[type, ...]]): The expected type.
-        got (Any): The got value.
-
-    Raises:
-        TypeError
-
-    Returns:
-        NoReturn: Never returns; raises.
-    """
-    raise TypeError(
-        f"{arg!r} must be type {expected!r}, got {type(got)!r} ({got!r})"
-    )
-
-
-def is_union(union: Any) -> bool:
-    """
-    Is `union` a Union?
-
-    >>> is_union(Union[int, str])
-    True
-
-    Args:
-        union (Any): The object to check.
-
-    Returns:
-        bool: True if `union` is a Union, False otherwise.
-    """
-    try:
-        return (
-            (type(union) is Union)
-            or (type(union) is UnionType)
-            or (union.__origin__ is Union)  # type: ignore
-        )
-    except AttributeError:
-        return False
-
-
-#    Actually: Union   vvv
-#                      ~~~
-def check_union(union: Any, got: Any) -> bool:
-    try:
-        return isinstance(got, union)
-    except TypeError:  # pragma: no cover
-        return any(isinstance(got, typ) for typ in union.__args__)
-
-
-def check_types(
-    **kwargs: Tuple[Union[type, Tuple[type, ...]], Any]
-) -> Literal[True]:
-    """
-    Check types.
-
-    >>> check_types(a=(int, 1), b=(str, "2"))
-    True
-    >>> check_types(arg_1=((int, float), 1), b_8=(str, "Hello world"))
-    True
-    >>> check_types(do=(bool, True))
-    True
-    >>> check_types(do=(bool, None))  # !
-    Traceback (most recent call last):
-    TypeError: 'do' must be type <class 'bool'>, got <class 'NoneType'> (None)
-    >>> check_types(do=(bool, False), sure=((bool, int), 6.9))  # !
-    Traceback (most recent call last):
-    TypeError: 'sure' must be type (<class 'bool'>, <class 'int'>), got\
- <class 'float'> (6.9)
-
-    Args:
-        **kwargs (Tuple[Union[type, Tuple[type, ...]], Any]): The args,\
- expected types and got values.
-
-    Raises:
-        TypeError: If the types are not correct.
-
-    Returns:
-        Literal[True]: Always True.
-    """
-    for arg, (expected, got) in kwargs.items():
-        # ! This union thing is needed, because you cannot use isinstance with
-        # ! unions in python 3.9 and below.
-        if is_union(expected) and check_union(expected, got):
-            continue
-        if not isinstance(got, expected):
-            _check_types_error(arg, expected, got)
-    return True
 
 
 class SetAttr:
@@ -332,12 +235,6 @@ class StreamWriterHandler(Handler):
             use_colors (bool, optional): Use colors? Defaults to True.
             format_msg (bool, optional): Format the message? Defaults to True.
         """
-        check_types(
-            stream=(StreamProtocol, stream),
-            flush=(bool, flush),
-            use_colors=(bool, use_colors),
-            format_msg=(bool, format_msg),
-        )
         self.stream = stream
         self.flush = flush
         self.use_colors = use_colors
@@ -438,7 +335,6 @@ class Logger:
             ValueError: If the higher logger is None, but root is already\
  created (internally)
         """
-        check_types(higher=((Logger, NoneType), higher))
         if (higher is None) and (not _allow_root):
             raise ValueError(
                 "Cannot create a new logger: Root logger already"
@@ -473,7 +369,6 @@ class Logger:
         Returns:
             str: The colorized string.
         """
-        check_types(rv=(str, rv))
         if rv == "DEBUG":
             rv = termcolor.colored("DEBUG".ljust(8), "blue")
         elif rv == "INFO":
@@ -501,7 +396,6 @@ class Logger:
         Returns:
             str: The string.
         """
-        check_types(lvl=(Levelable, lvl))
         try:
             rv = to_level(lvl, False).name.upper()  # type: ignore
         except (ValueError, AttributeError):
@@ -527,7 +421,6 @@ class Logger:
         Returns:
             str: The formatted message.
         """
-        check_types(event=(LogEvent, event))
         _indent = "  " * self.indent
         _lvl = self.level_to_str(event.level)
         _time = str(datetime.datetime.fromtimestamp(event.time))
@@ -573,12 +466,6 @@ class Logger:
         Returns:
             LogEvent: The log event.
         """
-        check_types(
-            lvl=(Levelable, lvl),
-            msg=(Stringable, msg),
-            frame_depth=(int, frame_depth),
-            tb=(bool, tb),
-        )
         event = LogEvent(
             msg=str(msg),
             level=to_level(lvl, True),
@@ -614,12 +501,6 @@ class Logger:
         Returns:
             Optional[LogEvent]: The log event if created.
         """
-        check_types(
-            lvl=(Levelable, lvl),
-            msg=(Stringable, msg),
-            traceback=(bool, traceback),
-            frame_depth=(int, frame_depth),
-        )
         # Check if disabled
         if not self.enabled:
             return None
@@ -656,7 +537,6 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.debug, msg, traceback, 5)
 
     def info(
@@ -673,7 +553,6 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.info, msg, traceback, 5)
 
     def warning(
@@ -690,7 +569,6 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.warning, msg, traceback, 5)
 
     def error(
@@ -707,7 +585,6 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.error, msg, traceback, 5)
 
     def critical(
@@ -724,7 +601,6 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        check_types(msg=(Stringable, msg), traceback=(bool, traceback))
         return self._log(Level.critical, msg, traceback, 5)
 
     def get_child(self) -> "Logger":
@@ -749,7 +625,6 @@ class Logger:
         Returns:
             bool: Whether the logger is enabled for the given level.
         """
-        check_types(lvl=(Levelable, lvl))
         lvl = to_level(lvl, True)
         if not isinstance(self.threshold, Level):
             warnings.warn(
@@ -772,7 +647,6 @@ class IndentLogger:
         Args:
             logger (Logger): The logger.
         """
-        check_types(logger=(Logger, logger))
         self.logger = logger
 
     def __enter__(self) -> int:
@@ -819,7 +693,6 @@ class ChangeThreshold:
             logger (Logger): The logger.
             level (Levelable): The new threshold.
         """
-        check_types(logger=(Logger, logger), level=(Levelable, level))
         self.logger = logger
         self.level = to_level(level, True)
 
