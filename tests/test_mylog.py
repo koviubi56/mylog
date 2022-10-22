@@ -115,7 +115,8 @@ def random_anything(
         rv = _random_urlsafe()
     elif rt == "int":
         rv = _random_int(True)
-    # else is not needed
+    else:
+        raise ValueError(rt)
     if only_if(rv):
         return rv
     return random_anything(only_if=only_if)  # pragma: no cover
@@ -134,24 +135,6 @@ def x_equals_y(__x: object, __y: object, /) -> bool:
 def x_not_equals_y(__x: object, __y: object, /) -> bool:
     # So we test "!=" AND "__ne__"
     return (__x != __y) and (__x.__ne__(__y))
-
-
-def speed() -> float:
-    start = get_unix_time()
-    logger = mylog.root.get_child()
-    logger.threshold = mylog.Level(10)
-    logger.stream = Stream()
-    logger.critical("The quick brown fox jumps over the lazy dog.", False)
-    end = get_unix_time()
-    return end - start
-
-
-def skip_if_slow():
-    if (spd := speed()) >= 1:  # pragma: no cover
-        pytest.skip(
-            f"This computer is too slow. A few simple stuff took {spd}"
-            " seconds, while it should be less then one second."
-        )
 
 
 def test_to_level():
@@ -273,7 +256,7 @@ def test_stream_writer_handler():
     logger = mylog.root.get_child()
     logger.handlers = [handler]
     event = mylog.LogEvent(
-        random_anything(),
+        str(random_anything()),
         _random_level()[0],
         _random_int(False),
         _random_int(False),
@@ -290,7 +273,7 @@ def test_stream_writer_handler():
     logger = mylog.root.get_child()
     logger.handlers = [handler]
     event = mylog.LogEvent(
-        random_anything(),
+        str(random_anything()),
         _random_level()[0],
         _random_int(False),
         _random_int(False),
@@ -348,23 +331,28 @@ class TestLogger:
         assert logger.enabled is True
         assert logger.indent == 0
 
+        with pytest.raises(
+            ValueError, match=r"Cannot inherit if higher is None\."
+        ):
+            logger._inherit()
+
     @staticmethod
     def test_color():
         logger = mylog.root
-        assert logger._color("quick brown fox") == "quick brown fox"
-        assert logger._color("DEBUG") == termcolor.colored(
+        assert logger.color("quick brown fox") == "quick brown fox"
+        assert logger.color("DEBUG") == termcolor.colored(
             "DEBUG".ljust(8), "blue"
         )
-        assert logger._color("INFO") == termcolor.colored(
+        assert logger.color("INFO") == termcolor.colored(
             "INFO".ljust(8), "cyan"
         )
-        assert logger._color("WARNING") == termcolor.colored(
+        assert logger.color("WARNING") == termcolor.colored(
             "WARNING".ljust(8), "yellow"
         )
-        assert logger._color("ERROR") == termcolor.colored(
+        assert logger.color("ERROR") == termcolor.colored(
             "ERROR".ljust(8), "red"
         )
-        assert logger._color("CRITICAL") == termcolor.colored(
+        assert logger.color("CRITICAL") == termcolor.colored(
             "CRITICAL".ljust(8),
             "red",
             "on_yellow",
@@ -408,7 +396,7 @@ class TestLogger:
     def test_format_msg():
         logger = mylog.root
         lvl = _random_level()
-        event = mylog.LogEvent(random_anything(), lvl[0], 0, 0, 0, False)
+        event = mylog.LogEvent(str(random_anything()), lvl[0], 0, 0, 0, False)
 
         # Check if it runs
         for _ in range(10):
@@ -422,12 +410,14 @@ class TestLogger:
 
     @staticmethod
     def test_actually_log():
-        skip_if_slow()
-
-        logger = mylog.root
+        logger = mylog.root.get_child()
         logger.list = []
         logger.indent = _randint(0, 10)
-        logger.stream = Stream()
+        stream = Stream()
+        handler = mylog.StreamWriterHandler(
+            stream, flush=False, use_colors=False, format_msg=False
+        )
+        logger.handlers = [handler]
         lvl = _random_level()
         msg = random_anything()
         frame_depth = _randint(0, 3)
@@ -439,21 +429,22 @@ class TestLogger:
         event = logger.list[0]
         assert event.msg == str(msg)
         assert event.level == lvl[1]
-        assert event.time == pytest.approx(time, rel=1)
+        assert time - 1 < event.time < time + 1
         assert event.indent == logger.indent
         assert event.frame_depth == frame_depth
+        assert stream.wrote == str(msg)
 
     @staticmethod
     def test_log_propagate():
-        skip_if_slow()
-
         logger = mylog.root.get_child()
+        if not logger.higher:
+            raise TypeError(f"{logger.higher = !r}")
         logger.list = []
         logger.indent = _randint(0, 10)
         logger.propagate = True
-        logger.stream = Stream()
+        logger.handlers = []
         logger.threshold = mylog.Level.debug
-        logger.higher.stream = Stream()
+        logger.higher.handlers = []
         logger.higher.threshold = mylog.Level.debug
         lvl = _random_level()
         msg = random_anything()
@@ -466,7 +457,7 @@ class TestLogger:
         event = logger.higher.list[-1]
         assert event.msg == str(msg)
         assert event.level == lvl[1]
-        assert event.time == pytest.approx(time, rel=1)
+        assert time - 1 < event.time < time + 1
         assert event.indent == logger.higher.indent
         assert event.frame_depth == frame_depth + 1
         #                                       ~~~
@@ -486,7 +477,7 @@ class TestLogger:
         logger.list = []
         logger.indent = _randint(0, 10)
         logger.threshold = mylog.Level.debug
-        logger.stream = Stream()
+        logger.handlers = []
         lvl = _random_level()
         msg = random_anything()
         frame_depth = _randint(0, 3)
@@ -498,7 +489,7 @@ class TestLogger:
         event = logger.list[-1]
         assert event.msg == str(msg)
         assert event.level == lvl[1]
-        assert event.time == pytest.approx(time, rel=1)
+        assert time - 1 < event.time < time + 1
         assert event.indent == logger.indent
         assert event.frame_depth == frame_depth
 
@@ -518,7 +509,7 @@ class TestLogger:
         logger.list = []
         logger.indent = _randint(0, 10)
         logger.threshold = mylog.Level.debug
-        logger.stream = Stream()
+        logger.handlers = []
         msg = random_anything()
 
         time = get_unix_time()
@@ -528,7 +519,7 @@ class TestLogger:
         event = logger.list[-1]
         assert event.msg == str(msg)
         assert event.level == lvl
-        assert event.time == pytest.approx(time, rel=1)
+        assert time - 1 < event.time < time + 1
         assert event.indent == logger.indent
 
     @staticmethod
@@ -589,7 +580,7 @@ class TestLogger:
         assert not logger.is_enabled_for(mylog.Level.error)
         assert logger.is_enabled_for(mylog.Level.critical)
 
-        logger.threshold = "fatal"
+        logger.threshold = "fatal"  # type: ignore
         with pytest.warns(
             UserWarning, match="Logger threshold should be a Level"
         ):

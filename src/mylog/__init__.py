@@ -31,11 +31,13 @@ from types import TracebackType
 from typing import (
     Any,
     List,
+    Literal,
     Optional,
     Protocol,
     Type,
     TypeVar,
     Union,
+    overload,
     runtime_checkable,
 )
 
@@ -71,11 +73,26 @@ DEFAULT_THRESHOLD = Level.warning
 class Stringable(Protocol):
     """Protocol for stringable objects."""
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # pragma: no cover
         """Return the string representation of the object."""
+        return ""
 
 
 Levelable = Union[Level, Stringable, int]
+
+
+@overload
+def to_level(
+    lvl: Levelable, int_ok: Literal[True] = True
+) -> Union[Level, int]:  # pragma: no cover
+    ...
+
+
+@overload
+def to_level(
+    lvl: Levelable, int_ok: Literal[False] = False
+) -> Level:  # pragma: no cover
+    ...
 
 
 def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
@@ -140,7 +157,7 @@ class SetAttr:
         setattr(self.obj, self.name, self.new_value)
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *_: Any):
         """Exit the context manager."""
         setattr(self.obj, self.name, self.old_value)
 
@@ -169,7 +186,7 @@ class LogEvent:
 class StreamProtocol(Protocol):
     """Protocol for streams."""
 
-    def write(self, __s: str, /) -> int:
+    def write(self, __s: str, /) -> int:  # pragma: no cover
         """
         Writes `__s` to the stream.
 
@@ -179,6 +196,7 @@ class StreamProtocol(Protocol):
         Returns:
             int: `len(__s)`
         """
+        return 0
 
     def flush(self) -> None:
         """Flushes the streams."""
@@ -299,6 +317,8 @@ class Logger:
 
     def _inherit(self) -> None:
         # Made a separate function so it can be overwritten
+        if self.higher is None:
+            raise ValueError("Cannot inherit if higher is None.")
 
         # These (in my opinion) should not be inherited.
         self.propagate = False
@@ -310,7 +330,7 @@ class Logger:
 
         # These (in my opinion) should be inherited.
         self.format: str = self.higher.format
-        self.threshold: Level = self.higher.threshold
+        self.threshold: Union[Level, int] = self.higher.threshold
         self.handlers: List[Handler] = self.higher.handlers
 
     def get_default_handlers(self) -> List[Handler]:
@@ -351,7 +371,7 @@ class Logger:
         self.list: List[LogEvent] = []
         self.indent = 0  # Should be set manually
         self.format: str = DEFAULT_FORMAT
-        self.threshold: Level = DEFAULT_THRESHOLD
+        self.threshold: Union[Level, int] = DEFAULT_THRESHOLD
         self.enabled: bool = True
         self._id = uuid.uuid4()  # Only used for ==, !=
         self.handlers: List[Handler] = self.get_default_handlers()
@@ -359,7 +379,7 @@ class Logger:
         self.ctxmgr = IndentLogger(self)
 
     @staticmethod
-    def _color(rv: str) -> str:
+    def color(rv: str) -> str:
         """
         Colorize the string. This function is only recommended internally.
 
@@ -407,7 +427,7 @@ class Logger:
             rv = "CRITICAL"
 
         if self.colors:
-            rv = self._color(rv)
+            rv = self.color(rv)
 
         return rv  # noqa: R504
 
@@ -696,12 +716,12 @@ class ChangeThreshold:
         self.logger = logger
         self.level = to_level(level, True)
 
-    def __enter__(self) -> Level:
+    def __enter__(self) -> Union[Level, int]:
         """
         Change the threshold.
 
         Returns:
-            Level: The old threshold.
+            Union[Level, int]: The old threshold.
         """
         self.old_level = self.logger.threshold
         self.logger.threshold = self.level  # type: ignore
