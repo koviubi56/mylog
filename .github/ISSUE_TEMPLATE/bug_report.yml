@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a bug
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for contributing to our project! 🙏
+
+        Please follow these instructions, fill every question, and do every step. ✏️
+
+        By asking questions in a structured way (following this) it will be much easier to help you. 😀
+
+        And there's a high chance that you will find the solution along the way and you won't even have to submit it and wait for an answer. 😎
+
+        It is highly recommended that you read [these guidelines](https://www.chiark.greenend.org.uk/~sgtatham/bugs.html) 📖
+
+  - type: checkboxes
+    attributes:
+      label: First checks
+      description: Please check all of the applicable boxes. Some boxes may be left unchecked.
+      options:
+        - label: I added a very descriptive title here.
+        - label: I searched for similar open and closed issues and pull requests, but I couldn't find any. 🔍
+        - label: I'm using the latest (pre-release if available) version
+
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: To Reproduce
+      description: "Steps to reproduce the behavior:"
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here (the version you're using, OS, ...)

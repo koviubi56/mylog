@@ -29,6 +29,14 @@ documentation, submitting bug reports and feature requests or writing code.
   agree to the contributing guidlines, the code of conduct, and the DCO.
   **If you don't put an X to all of them, your issue will be closed!**
 
+## How to file a bug report?
+
+Click [here](https://github.com/koviubi56/mylog/issues/new?assignees=&labels=bug&template=bug_report.yml) and fill out the form.
+
+## How to suggest a feature?
+
+Click [here](https://github.com/koviubi56/mylog/issues/new?assignees=&labels=enhancement&template=feature_request.yml) and fill out the form.
+
 ## Pull requests
 
 - **Read, understand, and agree to the DCO. [More info](#dco)**

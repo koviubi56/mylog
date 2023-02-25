@@ -1,0 +1,44 @@
+name: Issue before pull request
+description: Before making a pull request please open an issue to insure that your hard work won't go into waste, because it's not needed.
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for contributing to our project! 🙏
+
+        Please follow these instructions, fill every question, and do every step. ✏️
+
+        By asking questions in a structured way (following this) it will be much easier to help you. 😀
+
+        Please make sure to read our [contributing guidelines](CONTRIBUTING.md)!
+
+  - type: input
+    attributes:
+      label: PR/Fork
+      description: If you have created a fork or a draft pull request, refer to it. If you haven't just leave this blank.
+
+  - type: checkboxes
+    attributes:
+      label: First checks
+      description: Please confirm and check all the following options.
+      options:
+        - label: I added a very descriptive title here.
+          required: true
+        - label: I have read and followed the [contributing guidelines](CONTRIBUTING.yml)
+          required: true
+        - label: I agree to the [Developer Certificate of Origin](https://developercertificate.org/)
+          required: true
+
+  - type: textarea
+    attributes:
+      label: What does the PR implement?
+      description: What does your pull request implement? What code changes have you done? Why?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Add any additional context information or screenshots you think are useful.
