@@ -1,9 +1,0 @@
-commands = [
-    "{pyexe} -m pip install -Ur requirements.txt -e . pytest-randomly pytest-xdist",
-    "{install}",
-    "{pyexe} -m pytest -n auto",
-]
-
-[[packages]]
-
-name = "termcolor"
