@@ -131,7 +131,7 @@ def random_anything(
         rv = _random_urlsafe()
     elif rt == "int":
         rv = _random_int(True)
-    else:
+    else:  # pragma: no cover
         raise ValueError(rt)
     if only_if(rv):
         return rv
@@ -453,7 +453,7 @@ class TestLogger:
     @staticmethod
     def test_log_propagate():
         logger = mylog.root.get_child()
-        if not logger.higher:
+        if not logger.higher:  # pragma: no cover
             raise TypeError(f"{logger.higher = !r}")
         logger.list = []
         logger.indent = _randint(0, 10)
