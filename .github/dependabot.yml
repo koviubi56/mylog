@@ -5,13 +5,24 @@
 
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: "github-actions" # See documentation for possible values
+    directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
-
+    assignees:
+      - "koviubi56"
+    reviewers:
+      - "koviubi56"
+    commit-message:
+      prefix: ":arrow_up: "
 
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: daily
+    assignees:
+      - "koviubi56"
+    reviewers:
+      - "koviubi56"
+    commit-message:
+      prefix: ":arrow_up: "
