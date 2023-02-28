@@ -39,6 +39,9 @@ from typing import (
     Union,
     overload,
     runtime_checkable,
+    ClassVar,
+    Dict,
+    Tuple,
 )
 
 import termcolor
@@ -288,19 +291,59 @@ class StreamWriterHandler(Handler):
         )
 
 
+@dataclasses.dataclass(order=True, frozen=True, kw_only=True)
+class AttributesToInherit:
+    """
+    What attributes to inherit.
+    Changes made to the parent logger won't be made to the children.
+    """
+
+    propagate: bool = False
+    _id: bool = False
+    list: bool = False
+    indent: bool = False
+    enabled: bool = False
+    ctxmgr: bool = False
+    # IndentLogger (used by ctxmgr) takes the logger as an argument.
+    # If it's inherited the PARENT LOGGER will be indented
+    format: bool = True
+    threshold: bool = True
+    handlers: bool = True
+
+
 class Logger:
     """THE logger class. You shouldn't really call __init__; use the root\
  logger, or the root logger's get_child"""
 
-    colors: bool = True
+    colors: ClassVar[bool] = True
     # ↪ Should level_to_str use colors? Should be set manually.
+    compare_using_name: ClassVar[bool] = False
+    # ↪ Compare (__eq__, __ne__) using self.name? If False, use self._id
+    attributes_to_inherit: ClassVar[
+        AttributesToInherit
+    ] = AttributesToInherit()
+    # ↪ What attributes should get inherited in ._inherit()
+    color_config: ClassVar[Dict[str, Tuple[Any, ...]]] = {
+        "DEBUG": ("blue",),
+        "INFO": ("cyan",),
+        "WARNING": ("yellow",),
+        "ERROR": ("red",),
+        "CRITICAL": ("red", "on_yellow", ["bold", "underline", "blink"]),
+    }
+    level_name_width: ClassVar[int] = 8
+
+    @classmethod
+    def _thing_to_compare(cls, obj: "Logger") -> str:
+        if cls.compare_using_name:
+            return obj.name
+        return obj._id
 
     def __eq__(self, __o: object) -> bool:
         # sourcery skip: assign-if-exp, reintroduce-else
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id == __o._id
+            return self._thing_to_compare(self) == self._thing_to_compare(__o)
         return NotImplemented
 
     def __ne__(self, __o: object) -> bool:
@@ -308,7 +351,8 @@ class Logger:
         if isinstance(
             __o, Logger  # Hardcoded, because class can be subclassed
         ):
-            return self._id != __o._id
+            return self._thing_to_compare(self) != self._thing_to_compare(__o)
+
         return NotImplemented
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -319,20 +363,45 @@ class Logger:
         if self.higher is None:
             raise ValueError("Cannot inherit if higher is None.")
 
-        # These (in my opinion) should not be inherited.
-        self.propagate = False
-        self._id = uuid.uuid4()  # Only used for ==, !=
-        self.list: List[LogEvent] = []
-        self.indent = 0  # Should be set manually
-        self.enabled: bool = True
-        self.ctxmgr = IndentLogger(self)
+        if self.attributes_to_inherit.propagate:
+            self.propagate = self.higher.propagate
+        else:
+            self.propagate = False
+        if self.attributes_to_inherit._id:
+            self._id = self.higher._id
+        else:
+            self._id = uuid.uuid4()
+        if self.attributes_to_inherit.list:
+            self.list = self.higher.list
+        else:
+            self.list: List[LogEvent] = []
+        if self.attributes_to_inherit.indent:
+            self.indent = self.higher.indent
+        else:
+            self.indent = 0
+        if self.attributes_to_inherit.enabled:
+            self.enabled = self.higher.enabled
+        else:
+            self.enabled: bool = True
+        if self.attributes_to_inherit.ctxmgr:
+            self.ctxmgr = self.higher.ctxmgr
+        else:
+            self.ctxmgr = IndentLogger(self)
+        if self.attributes_to_inherit.format:
+            self.format: str = self.higher.format
+        else:
+            self.format = DEFAULT_FORMAT
+        if self.attributes_to_inherit.threshold:
+            self.threshold: Union[Level, int] = self.higher.threshold
+        else:
+            self.threshold = DEFAULT_THRESHOLD
+        if self.attributes_to_inherit.handlers:
+            self.handlers: List[Handler] = self.higher.handlers
+        else:
+            self.handlers = self.get_default_handlers()
 
-        # These (in my opinion) should be inherited.
-        self.format: str = self.higher.format
-        self.threshold: Union[Level, int] = self.higher.threshold
-        self.handlers: List[Handler] = self.higher.handlers
-
-    def get_default_handlers(self) -> List[Handler]:
+    @staticmethod
+    def get_default_handlers() -> List[Handler]:
         """
         Get the default handlers. Please note, that overwriting this function\
  will not change the handlers.
@@ -379,8 +448,8 @@ class Logger:
 
         self.ctxmgr = IndentLogger(self)
 
-    @staticmethod
-    def color(rv: str) -> str:
+    @classmethod
+    def color(cls, rv: str) -> str:
         """
         Colorize the string. This function is only recommended internally.
 
@@ -390,24 +459,14 @@ class Logger:
         Returns:
             str: The colorized string.
         """
-        if rv == "DEBUG":
-            rv = termcolor.colored("DEBUG".ljust(8), "blue")
-        elif rv == "INFO":
-            rv = termcolor.colored("INFO".ljust(8), "cyan")
-        elif rv == "WARNING":
-            rv = termcolor.colored("WARNING".ljust(8), "yellow")
-        elif rv == "ERROR":
-            rv = termcolor.colored("ERROR".ljust(8), "red")
-        elif rv == "CRITICAL":
-            rv = termcolor.colored(
-                "CRITICAL".ljust(8),
-                "red",
-                "on_yellow",
-                ["bold", "underline", "blink"],
+        if rv in cls.color_config:
+            return termcolor.colored(
+                rv.ljust(cls.level_name_width), *cls.color_config[rv]
             )
-        return rv  # noqa: R504
+        return rv
 
-    def level_to_str(self, lvl: Levelable) -> str:
+    @classmethod
+    def level_to_str(cls, lvl: Levelable) -> str:
         """
         Convert a level to a string.
 
@@ -420,15 +479,15 @@ class Logger:
         try:
             rv = to_level(lvl, False).name.upper()  # type: ignore
         except (ValueError, AttributeError):
-            rv = str(lvl).ljust(8)
+            rv = str(lvl).ljust(cls.level_name_width)
 
         if rv == "WARN":  # pragma: no cover
             rv = "WARNING"
         if rv == "FATAL":  # pragma: no cover
             rv = "CRITICAL"
 
-        if self.colors:
-            rv = self.color(rv)
+        if cls.colors:
+            rv = cls.color(rv)
 
         return rv  # noqa: R504
 
