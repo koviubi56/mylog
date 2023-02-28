@@ -14,6 +14,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+# ruff: noqa: I001
 import base64
 import secrets
 from time import time as get_unix_time
@@ -153,7 +154,7 @@ def x_not_equals_y(__x: object, __y: object, /) -> bool:
     return (__x != __y) and (__x.__ne__(__y))
 
 
-def test_to_level():
+def test_to_level():  # noqa: PLR0915
     assert mylog.to_level(mylog.Level.debug) == mylog.Level.debug
     assert mylog.to_level(mylog.Level.info) == mylog.Level.info
     assert mylog.to_level(mylog.Level.warning) == mylog.Level.warning
@@ -515,7 +516,7 @@ class TestLogger:
 
     @staticmethod
     @pytest.mark.parametrize(  # noqa: PT006
-        "method_name,lvl",
+        ("method_name", "lvl"),
         [
             ("debug", mylog.Level.debug),
             ("info", mylog.Level.info),

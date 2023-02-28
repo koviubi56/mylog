@@ -1,3 +1,53 @@
 [build-system]
 requires = ["setuptools>=42.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+select = ["ALL"]
+ignore = [
+    "ANN101",
+    "ANN102",
+    "ANN401",
+    "COM812",
+    "D",
+    "EM101",
+    "EM102",
+    "FBT",
+    "G004",
+    "PGH003",
+    "PLR2004",
+    "RUF100",
+    "TCH",
+    "TRY003",
+    "TRY400",
+]
+per-file-ignores = { "tests/*" = ["S101", "ANN", "SLF001"] }
+line-length = 79
+target-version = "py38"
+
+[[tool.lemming.linters]]
+packages = ["ruff"]
+command = "{pyexe} -m ruff check . --show-source"
+run_first = true
+
+[[tool.lemming.formatters]]
+packages = ["black"]
+format_command = "{pyexe} -m black -l 79 {path}"
+check_command = "{pyexe} -m black -l 79 --check --extend-exclude .*venv.* {path}"
+
+[[tool.lemming.formatters]]
+packages = ["setup_cfg_fmt"]
+format_command = "{pyexe} -m setup_cfg_fmt --include-version-classifiers"
+# no check
+
+[[tool.lemming.formatters]]
+packages = ["isort"]
+format_command = "{pyexe} -m isort --profile black {path}"
+check_command = "{pyexe} -m isort --profile black -c {path}"
+
+[[tool.lemming.linters]]
+packages = ["pyroma"]
+command = "{pyexe} -m pyroma {path}"

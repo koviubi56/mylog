@@ -14,6 +14,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+# ruff: noqa: SLF001
 
 __version__ = "0.6.1"
 
@@ -27,21 +28,21 @@ import traceback as tracebacklib
 import uuid
 import warnings
 from enum import IntEnum
-from types import TracebackType
+from types import TracebackType  # noqa: TCH003
 from typing import (
     Any,
+    ClassVar,
+    Dict,
     List,
     Literal,
     Optional,
     Protocol,
+    Tuple,
     Type,
     TypeVar,
     Union,
     overload,
     runtime_checkable,
-    ClassVar,
-    Dict,
-    Tuple,
 )
 
 import termcolor
@@ -138,7 +139,9 @@ NoneType = type(None)
 class SetAttr:
     """A context manager for setting and then resetting an attribute."""
 
-    def __init__(self, obj: object, name: str, new_value: Any) -> None:
+    def __init__(
+        self, obj: object, name: str, new_value: Any
+    ) -> None:  # noqa: ANN401
         """
         Initialize the SetAttr.
 
@@ -162,7 +165,7 @@ class SetAttr:
         setattr(self.obj, self.name, self.new_value)
         return self
 
-    def __exit__(self, *_: Any):
+    def __exit__(self, *_: object) -> None:
         """Exit the context manager."""
         setattr(self.obj, self.name, self.old_value)
 
@@ -300,13 +303,13 @@ class AttributesToInherit:
 
     propagate: bool = False
     _id: bool = False
-    list: bool = False
+    list: bool = False  # noqa: A003
     indent: bool = False
     enabled: bool = False
     ctxmgr: bool = False
     # IndentLogger (used by ctxmgr) takes the logger as an argument.
     # If it's inherited the PARENT LOGGER will be indented
-    format: bool = True
+    format: bool = True  # noqa: A003
     threshold: bool = True
     handlers: bool = True
 
@@ -358,7 +361,7 @@ class Logger:
     def __repr__(self) -> str:  # pragma: no cover
         return f"<{self.__class__.__qualname__} {self.name}>"
 
-    def _inherit(self) -> None:
+    def _inherit(self) -> None:  # noqa: PLR0912,C901
         # Made a separate function so it can be overwritten
         if self.higher is None:
             raise ValueError("Cannot inherit if higher is None.")
@@ -503,7 +506,9 @@ class Logger:
         """
         _indent = "  " * self.indent
         _lvl = self.level_to_str(event.level)
-        _time = str(datetime.datetime.fromtimestamp(event.time))
+        _time = str(
+            datetime.datetime.fromtimestamp(event.time)  # noqa: DTZ006
+        )
         _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
         _msg = str(event.msg)
         _name = str(self.name)
