@@ -23,7 +23,7 @@ import dataclasses
 import datetime
 import sys
 import time
-import traceback
+import traceback as tracebacklib
 import uuid
 import warnings
 from enum import IntEnum
@@ -50,7 +50,9 @@ with contextlib.suppress(Exception):
 
 UnionType = type(Union[int, str])
 T = TypeVar("T")
-DEFAULT_FORMAT = "[{lvl} {time} line: {line}] {indent}{msg}"  # noqa: FS003
+DEFAULT_FORMAT = (
+    "[{name} {lvl} {time} line: {line}] {indent}{msg}"  # noqa: FS003
+)
 
 
 class Level(IntEnum):
@@ -310,10 +312,7 @@ class Logger:
         return NotImplemented
 
     def __repr__(self) -> str:  # pragma: no cover
-        return (
-            f"<Logger {self.__class__.__module__}."
-            f"{self.__class__.__qualname__} with id {self._id}>"
-        )
+        return f"<{self.__class__.__qualname__} {self.name}>"
 
     def _inherit(self) -> None:
         # Made a separate function so it can be overwritten
@@ -343,11 +342,12 @@ class Logger:
         """
         return [StreamWriterHandler(sys.stderr)]
 
-    def __init__(self, higher: Optional["Logger"] = None) -> None:
+    def __init__(self, name: str, higher: Optional["Logger"] = None) -> None:
         """
         Initialize the logger.
 
         Args:
+            name (str): The name of the logger.
             higher (Optional[Logger], optional): The higher logger. If it's\
  None or omitted then the logger will be the root. Defaults to None.
 
@@ -361,6 +361,7 @@ class Logger:
                 " exists. Use that, or make a child logger from the root"
                 " one."
             )
+        self.name = name
         if higher is not None:
             self.higher = higher
             # Made a separate function so it can be overwritten
@@ -446,13 +447,14 @@ class Logger:
         _time = str(datetime.datetime.fromtimestamp(event.time))
         _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
         _msg = str(event.msg)
+        _name = str(self.name)
         if (event.tb) and (sys.exc_info() == (None, None, None)):
             warnings.warn(
                 "No traceback available, but tb=True",
                 UserWarning,
                 event.frame_depth - 1,
             )
-        _tb = ("\n" + traceback.format_exc()) if event.tb else ""
+        _tb = ("\n" + tracebacklib.format_exc()) if event.tb else ""
         return (
             self.format.format(
                 indent=_indent,
@@ -460,6 +462,7 @@ class Logger:
                 time=_time,
                 line=_line,
                 msg=_msg,
+                name=_name,
             )
             + _tb
             + "\n"
@@ -623,7 +626,7 @@ class Logger:
         """
         return self._log(Level.critical, msg, traceback, 5)
 
-    def get_child(self) -> "Logger":
+    def get_child(self, name: str) -> "Logger":
         """
         Get a child logger.
 
@@ -633,7 +636,7 @@ class Logger:
         # This function should be short, so if the user doesn't like it, it
         # can be copy-pasted, and the user can change it.
         # (That's why we have `._inherit`)
-        return type(self)(self)
+        return type(self)(name, self)
 
     def is_enabled_for(self, lvl: Levelable) -> bool:
         """
@@ -752,5 +755,5 @@ class ChangeThreshold:
 
 
 _allow_root = True
-root = Logger()
+root = Logger("root")
 _allow_root = False
