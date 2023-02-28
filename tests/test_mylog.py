@@ -1,3 +1,19 @@
+"""
+Copyright (C) 2023  Koviubi56
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
 import base64
 import secrets
 from time import time as get_unix_time
@@ -115,7 +131,7 @@ def random_anything(
         rv = _random_urlsafe()
     elif rt == "int":
         rv = _random_int(True)
-    else:
+    else:  # pragma: no cover
         raise ValueError(rt)
     if only_if(rv):
         return rv
@@ -437,7 +453,7 @@ class TestLogger:
     @staticmethod
     def test_log_propagate():
         logger = mylog.root.get_child()
-        if not logger.higher:
+        if not logger.higher:  # pragma: no cover
             raise TypeError(f"{logger.higher = !r}")
         logger.list = []
         logger.indent = _randint(0, 10)
