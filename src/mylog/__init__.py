@@ -85,7 +85,7 @@ Levelable = Union[Level, Stringable, int]
 
 @overload
 def to_level(
-    lvl: Levelable, int_ok: Literal[True] = True
+    lvl: Levelable, int_ok: Literal[True] = False
 ) -> Union[Level, int]:  # pragma: no cover
     ...
 
@@ -97,7 +97,7 @@ def to_level(
     ...
 
 
-def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
+def to_level(lvl: Levelable, int_ok=False):
     """
     Convert a Levelable to a Level (or int).
 
