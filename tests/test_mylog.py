@@ -251,6 +251,10 @@ def test_to_level():
     assert mylog.to_level(nli, True) == nli
 
 
+def random_logger_name() -> str:
+    return _random_urlsafe()
+
+
 def test_nonetype():
     assert x_is_y(mylog.NoneType, type(None))
 
@@ -269,7 +273,7 @@ def test_setattr():
 def test_stream_writer_handler():
     stream = Stream()
     handler = mylog.StreamWriterHandler(stream, flush=True)
-    logger = mylog.root.get_child()
+    logger = mylog.root.get_child(random_logger_name())
     logger.handlers = [handler]
     event = mylog.LogEvent(
         str(random_anything()),
@@ -286,7 +290,7 @@ def test_stream_writer_handler():
 
     stream = Stream()
     handler = mylog.StreamWriterHandler(stream, flush=False)
-    logger = mylog.root.get_child()
+    logger = mylog.root.get_child(random_logger_name())
     logger.handlers = [handler]
     event = mylog.LogEvent(
         str(random_anything()),
@@ -305,7 +309,7 @@ def test_stream_writer_handler():
 class TestLogger:
     @staticmethod
     def test_eq():
-        l1 = l2 = mylog.root.get_child()
+        l1 = l2 = mylog.root.get_child(random_logger_name())
         assert x_equals_y(l1, l2)
         assert x_equals_y(l2, l1)
         assert x_equals_y(mylog.root, mylog.root)
@@ -313,8 +317,8 @@ class TestLogger:
 
     @staticmethod
     def test_ne():
-        l1 = mylog.root.get_child()
-        l2 = mylog.root.get_child()
+        l1 = mylog.root.get_child(random_logger_name())
+        l2 = mylog.root.get_child(random_logger_name())
         assert x_not_equals_y(l1, l2)
         assert x_not_equals_y(l2, l1)
         assert l1.__ne__(object()) == NotImplemented
@@ -331,11 +335,11 @@ class TestLogger:
             ValueError,
             match="Cannot create a new logger: Root logger already exists",
         ):
-            mylog.Logger(higher=None)
+            mylog.Logger(higher=None, name=random_logger_name())
 
         # Don't set `_allow_root` in production code
         mylog._allow_root = True
-        logger = mylog.Logger(None)
+        logger = mylog.Logger(random_logger_name(), None)
         mylog._allow_root = False
 
         assert logger.higher is None
@@ -426,7 +430,7 @@ class TestLogger:
 
     @staticmethod
     def test_actually_log():
-        logger = mylog.root.get_child()
+        logger = mylog.root.get_child(random_logger_name())
         logger.list = []
         logger.indent = _randint(0, 10)
         stream = Stream()
@@ -452,7 +456,7 @@ class TestLogger:
 
     @staticmethod
     def test_log_propagate():
-        logger = mylog.root.get_child()
+        logger = mylog.root.get_child(random_logger_name())
         if not logger.higher:  # pragma: no cover
             raise TypeError(f"{logger.higher = !r}")
         logger.list = []
@@ -541,7 +545,7 @@ class TestLogger:
     @staticmethod
     def test_get_child():
         parent = mylog.root
-        child = parent.get_child()
+        child = parent.get_child(random_logger_name())
 
         assert isinstance(child, type(parent))
         assert child.propagate is False
@@ -604,7 +608,7 @@ class TestLogger:
 
     @staticmethod
     def test_enabled():
-        logger = mylog.root.get_child()
+        logger = mylog.root.get_child(random_logger_name())
         logger.critical(random_anything())
         assert logger.list
         logger.list = []
