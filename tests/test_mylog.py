@@ -423,7 +423,8 @@ class TestLogger:
         for _ in range(10):
             logger.format_msg(event)
 
-        event.tb = True
+        event = mylog.LogEvent(str(random_anything()), lvl[0], 0, 0, 0, True)
+
         with pytest.warns(
             UserWarning, match="No traceback available, but tb=True"
         ):
