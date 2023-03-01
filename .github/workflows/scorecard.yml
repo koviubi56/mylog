@@ -10,9 +10,9 @@ on:
   # To guarantee Maintained check is occasionally updated. See
   # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
   schedule:
-    - cron: '21 4 * * 0'
+    - cron: "21 4 * * 0"
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -34,7 +34,11 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@c8454efe5d0bdefd25384362fe217428ca277d57 # v2.2.0
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443 api.osv.dev:443 bestpractices.coreinfrastructure.org:443 fulcio.sigstore.dev:443 github.com:443 sigstore-tuf-root.storage.googleapis.com:443
+
 
       - name: "Checkout code"
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
