@@ -136,23 +136,13 @@ def to_level(lvl: Levelable, int_ok=False):
 NoneType = type(None)
 
 
+@dataclasses.dataclass(order=True)
 class SetAttr:
     """A context manager for setting and then resetting an attribute."""
 
-    def __init__(
-        self, obj: object, name: str, new_value: Any
-    ) -> None:  # noqa: ANN401
-        """
-        Initialize the SetAttr.
-
-        Args:
-            obj (object): The object to set the attribute on.
-            name (str): The name of the attribute.
-            new_value (Any): The new value of the attribute.
-        """
-        self.obj = obj
-        self.name = name
-        self.new_value = new_value
+    obj: object
+    name: str
+    new_value: Any
 
     def __enter__(self) -> "SetAttr":
         """
@@ -165,20 +155,17 @@ class SetAttr:
         setattr(self.obj, self.name, self.new_value)
         return self
 
-    def __exit__(self, *_: object) -> None:
+    def __exit__(
+        self,
+        typ: Type[BaseException],
+        value: BaseException,
+        tb: TracebackType,
+    ) -> None:
         """Exit the context manager."""
         setattr(self.obj, self.name, self.old_value)
 
-    def __repr__(self) -> str:  # pragma: no cover
-        return (
-            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
-            f"(obj={self.obj!r},"
-            f" name={self.name!r},"
-            f" new_value={self.new_value!r})"
-        )
 
-
-@dataclasses.dataclass
+@dataclasses.dataclass(order=True, frozen=True)
 class LogEvent:
     """A log event."""
 
@@ -224,6 +211,7 @@ class Handler(abc.ABC):
         """
 
 
+@dataclasses.dataclass
 class NoHandler(Handler):
     """A handler that does nothing."""
 
@@ -236,35 +224,15 @@ class NoHandler(Handler):
             event (LogEvent): The event.
         """
 
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"{self.__class__.__module__}.{self.__class__.__qualname__}()"
 
-
+@dataclasses.dataclass(order=True, frozen=True)
 class StreamWriterHandler(Handler):
     """A handler to write to a stream."""
 
-    def __init__(
-        self,
-        stream: StreamProtocol,
-        *,
-        flush: bool = True,
-        use_colors: bool = True,
-        format_msg: bool = True,
-    ) -> None:
-        """
-        Initialize the StreamWriterHandler.
-
-        Args:
-            stream (StreamProtocol): The stream to write to.
-            flush (bool, optional): Flush the stream after writing to it?\
- Defaults to True.
-            use_colors (bool, optional): Use colors? Defaults to True.
-            format_msg (bool, optional): Format the message? Defaults to True.
-        """
-        self.stream = stream
-        self.flush = flush
-        self.use_colors = use_colors
-        self.format_msg = format_msg
+    stream: StreamProtocol
+    flush: bool = True
+    use_colors: bool = True
+    format_msg: bool = True
 
     def handle(self, logger: "Logger", event: LogEvent) -> None:
         """
@@ -283,15 +251,6 @@ class StreamWriterHandler(Handler):
         self.stream.write(msg)
         if self.flush:
             self.stream.flush()
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return (
-            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
-            f"(stream={self.stream!r},"
-            f" flush={self.flush!r},"
-            f" use_colors={self.use_colors!r},"
-            f" format_msg={self.format_msg!r})"
-        )
 
 
 @dataclasses.dataclass(order=True, frozen=True, kw_only=True)
@@ -724,17 +683,11 @@ class Logger:
         return lvl >= self.threshold
 
 
+@dataclasses.dataclass(order=True)
 class IndentLogger:
     """Indent the logger."""
 
-    def __init__(self, logger: Logger) -> None:
-        """
-        Initialize the indent logger.
-
-        Args:
-            logger (Logger): The logger.
-        """
-        self.logger = logger
+    logger: Logger
 
     def __enter__(self) -> int:
         """
@@ -762,13 +715,8 @@ class IndentLogger:
         """
         self.logger.indent -= 1
 
-    def __repr__(self) -> str:  # pragma: no cover
-        return (
-            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
-            f"(logger={self.logger!r})"
-        )
 
-
+@dataclasses.dataclass(order=True)
 class ChangeThreshold:
     """Change the threshold for a logger."""
 
@@ -809,13 +757,6 @@ class ChangeThreshold:
             tb (TracebackType): The traceback.
         """
         self.logger.threshold = self.old_level
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return (
-            f"{self.__class__.__module__}.{self.__class__.__qualname__}"
-            f"(logger={self.logger!r},"
-            f" level={self.level!r})"
-        )
 
 
 _allow_root = True
