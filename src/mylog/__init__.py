@@ -320,8 +320,7 @@ class Logger:
     def __repr__(self) -> str:  # pragma: no cover
         return f"<{self.__class__.__qualname__} {self.name}>"
 
-    def _inherit(self) -> None:  # noqa: PLR0912,C901
-        # Made a separate function so it can be overwritten
+    def _inherit(self) -> None:  # noqa: PLR0912,C901  # pragma: no cover
         if self.higher is None:
             raise ValueError("Cannot inherit if higher is None.")
 

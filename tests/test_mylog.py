@@ -309,6 +309,14 @@ def test_stream_writer_handler():
 
 class TestLogger:
     @staticmethod
+    def test_thing_to_compare(monkeypatch: pytest.MonkeyPatch):
+        logger = mylog.root.get_child(random_logger_name())
+        assert logger._thing_to_compare(logger) == logger._id
+        with monkeypatch.context() as monkey:
+            monkey.setattr(mylog.Logger, "compare_using_name", True)
+            assert logger._thing_to_compare(logger) == logger.name
+
+    @staticmethod
     def test_eq():
         l1 = l2 = mylog.root.get_child(random_logger_name())
         assert x_equals_y(l1, l2)
