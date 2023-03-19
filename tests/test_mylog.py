@@ -20,6 +20,7 @@ import secrets
 from time import time as get_unix_time
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
+import dataclasses
 
 import pytest
 import termcolor
@@ -152,6 +153,17 @@ def x_equals_y(__x: object, __y: object, /) -> bool:
 def x_not_equals_y(__x: object, __y: object, /) -> bool:
     # So we test "!=" AND "__ne__"
     return (__x != __y) and (__x.__ne__(__y))
+
+
+def test_dataclass():
+    try:
+        dataclasses.dataclass(kw_only=True)
+    except TypeError:
+        supports = False
+    else:
+        supports = True
+
+    assert mylog.DATACLASS_HAS_KW_ONLY is supports
 
 
 def test_to_level():  # noqa: PLR0915

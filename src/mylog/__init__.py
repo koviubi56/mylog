@@ -57,6 +57,12 @@ T = TypeVar("T")
 DEFAULT_FORMAT = (
     "[{name} {lvl} {time} line: {line}] {indent}{msg}"  # noqa: FS003
 )
+# dataclass' kw_only argument was introduced in python 3.10
+# i don't want to make the requirement 3.10 from 3.8, so instead we check
+# whether or not kw_only is a thing. if it is we'll use it, if it's not, we'll
+# ignore it
+DATACLASS_HAS_KW_ONLY = "kw_only" in dataclasses.dataclass.__kwdefaults__
+DATACLASS_KW_ONLY = {"kw_only": True} if DATACLASS_HAS_KW_ONLY else {}
 
 
 class Level(IntEnum):
@@ -253,7 +259,7 @@ class StreamWriterHandler(Handler):
             self.stream.flush()
 
 
-@dataclasses.dataclass(order=True, frozen=True, kw_only=True)
+@dataclasses.dataclass(order=True, frozen=True, **DATACLASS_KW_ONLY)
 class AttributesToInherit:
     """
     What attributes to inherit.
