@@ -16,7 +16,7 @@ jobs:
           disable-sudo: true
           egress-policy: block
           allowed-endpoints: >
-            github.com:443 pypi.org:443
+            github.com:443 pypi.org:443 files.pythonhosted.org:443
 
 
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
