@@ -16,11 +16,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # ruff: noqa: I001
 import base64
+import dataclasses
 import secrets
 from time import time as get_unix_time
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
-import dataclasses
 
 import pytest
 import termcolor
