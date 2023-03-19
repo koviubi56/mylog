@@ -475,7 +475,7 @@ class Logger:
             warnings.warn(
                 "No traceback available, but tb=True",
                 UserWarning,
-                event.frame_depth - 1,
+                stacklevel=event.frame_depth - 1,
             )
         _tb = ("\n" + tracebacklib.format_exc()) if event.tb else ""
         return (
@@ -678,6 +678,7 @@ class Logger:
                 f" {type(self.threshold)!r} ({self.threshold!r})."
                 " Converting threshold...",
                 UserWarning,
+                stacklevel=2,
             )
             self.threshold = to_level(self.threshold, True)
         return lvl >= self.threshold
