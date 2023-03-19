@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # ruff: noqa: SLF001
 
-__version__ = "0.6.1"
+__version__ = "0.7.0"
 
 import abc
 import contextlib
