@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0-beta.1] - 2023-04-29
+
 ### Changes
 
 - **! Renamed `Logger._log` to `Logger.log`, and its new signature is `Logger.log(self: Self@Logger, lvl: Levelable, msg: Stringable, traceback: bool = False, frame_depth: int = 3) -> (LogEvent | None)`**
