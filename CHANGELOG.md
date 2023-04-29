@@ -7,14 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changes
+
+- **! Renamed `Logger._log` to `Logger.log`, and its new signature is `Logger.log(self: Self@Logger, lvl: Levelable, msg: Stringable, traceback: bool = False, frame_depth: int = 3) -> (LogEvent | None)`**
+
 ## [0.7.0] - 2023-03-19
 
-## Added
+### Added
 
 - **! Added names for loggers! => `Logger.__init__(self: Self@Logger, name: str, higher: Logger | None = None) -> None`, new format substitution: `{name}`, `Logger.get_child(self: Self@Logger, name: str) -> Logger`** #51
 - **Added `AttributesToInherit`, `Logger.compare_using_name` (=> `Logger._thing_to_compare`), `Logger.attributes_to_inherit`, `Logger.color_config` (=> `Logger.color(cls: Type[Self@Logger], rv: str) -> str`), and `Logger.level_name_width` to make making changes to loggers easier.**
 
-## Changed
+### Changed
 
 - **Renamed `Logger._color` to `Logger.color`** ([`26ee19f`](https://github.com/koviubi56/mylog/commit/26ee19f7255397d774d2e2439e927318a8bb3dac#diff-134a3f0dfece1d8aef44db6e6c1f05dbb0c904328960638685919788921d38d3L362-R382))
 - Made the following classes dataclasses:
@@ -28,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Logger.level_to_str`
 - `Logger.threshold` is a `Union[Level, int]` ([`26ee19f`](https://github.com/koviubi56/mylog/commit/26ee19f7255397d774d2e2439e927318a8bb3dac#diff-134a3f0dfece1d8aef44db6e6c1f05dbb0c904328960638685919788921d38d3L354-R374))
 
-## Removed
+### Removed
 
 - Removed `check_typed` and related (`check_union`, `is_union`, `_check_types_error`) ([`ef85a86`](https://github.com/koviubi56/mylog/commit/ef85a86b2d5cd165190d25e3098296f700a32ea9#diff-134a3f0dfece1d8aef44db6e6c1f05dbb0c904328960638685919788921d38d3L119-L212))
 

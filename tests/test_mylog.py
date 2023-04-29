@@ -493,7 +493,7 @@ class TestLogger:
         frame_depth = _randint(0, 3)
 
         time = get_unix_time()
-        logger._log(lvl[0], msg, False, frame_depth)
+        logger.log(lvl[0], msg, False, frame_depth)
 
         assert not logger.list
         event = logger.higher.list[-1]
@@ -510,7 +510,7 @@ class TestLogger:
             UserWarning, match="Root logger should not propagate"
         ):
             mylog.root.propagate = True
-            mylog.root._log(_random_level()[0], random_anything(), False, 2)
+            mylog.root.log(_random_level()[0], random_anything(), False, 2)
             mylog.root.propagate = False
 
     @staticmethod
@@ -525,7 +525,7 @@ class TestLogger:
         frame_depth = _randint(0, 3)
 
         time = get_unix_time()
-        logger._log(lvl[0], msg, False, frame_depth)
+        logger.log(lvl[0], msg, False, frame_depth)
 
         assert len(logger.list) == 1
         event = logger.list[-1]

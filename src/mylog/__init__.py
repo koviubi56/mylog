@@ -530,12 +530,12 @@ class Logger:
             handler.handle(self, event)
         return event
 
-    def _log(
+    def log(
         self,
         lvl: Levelable,
         msg: Stringable,
-        traceback: bool,
-        frame_depth: int,
+        traceback: bool = False,
+        frame_depth: int = 3,
     ) -> Optional[LogEvent]:
         """
         Log the message. Checks if the logger is enabled, propagate, and stuff.
@@ -567,7 +567,7 @@ class Logger:
                 )
                 return None
             # Log with parent
-            return self.higher._log(lvl, msg, traceback, frame_depth + 1)
+            return self.higher.log(lvl, msg, traceback, frame_depth + 1)
         # Check if it's enabled
         if not self.is_enabled_for(lvl):
             return None
@@ -588,7 +588,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        return self._log(Level.debug, msg, traceback, 5)
+        return self.log(Level.debug, msg, traceback, 5)
 
     def info(
         self, msg: Stringable, traceback: bool = False
@@ -604,7 +604,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        return self._log(Level.info, msg, traceback, 5)
+        return self.log(Level.info, msg, traceback, 5)
 
     def warning(
         self, msg: Stringable, traceback: bool = False
@@ -620,7 +620,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        return self._log(Level.warning, msg, traceback, 5)
+        return self.log(Level.warning, msg, traceback, 5)
 
     def error(
         self, msg: Stringable, traceback: bool = False
@@ -636,7 +636,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        return self._log(Level.error, msg, traceback, 5)
+        return self.log(Level.error, msg, traceback, 5)
 
     def critical(
         self, msg: Stringable, traceback: bool = False
@@ -652,7 +652,7 @@ class Logger:
         Returns:
             int: The number of characters written.
         """
-        return self._log(Level.critical, msg, traceback, 5)
+        return self.log(Level.critical, msg, traceback, 5)
 
     def get_child(self, name: str) -> "Logger":
         """
