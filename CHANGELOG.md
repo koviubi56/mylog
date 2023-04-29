@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed default value for `frame_depth` in `Logger.log` (3 -> 4)
+
 ## [0.8.0-beta.1] - 2023-04-29
 
-### Changes
+### Changed
 
 - **! Renamed `Logger._log` to `Logger.log`, and its new signature is `Logger.log(self: Self@Logger, lvl: Levelable, msg: Stringable, traceback: bool = False, frame_depth: int = 3) -> (LogEvent | None)`**
 

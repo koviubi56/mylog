@@ -535,7 +535,7 @@ class Logger:
         lvl: Levelable,
         msg: Stringable,
         traceback: bool = False,
-        frame_depth: int = 3,
+        frame_depth: int = 4,
     ) -> Optional[LogEvent]:
         """
         Log the message. Checks if the logger is enabled, propagate, and stuff.
@@ -547,7 +547,7 @@ class Logger:
             msg (Stringable): The message.
             traceback (bool): Whether to include the traceback.
             frame_depth (int): The depth of the frame. If you call this from\
- your code, this (probably) should be 3.
+ your code, this (probably) should be 4.
 
         Returns:
             Optional[LogEvent]: The log event if created.
