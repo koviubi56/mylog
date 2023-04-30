@@ -107,7 +107,7 @@ def to_level(
     ...
 
 
-def to_level(lvl: Levelable, int_ok=False):
+def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
     """
     Convert a Levelable to a Level (or int).
 
@@ -302,9 +302,7 @@ class Logger:
 
     @classmethod
     def _thing_to_compare(cls, obj: "Logger") -> str:
-        if cls.compare_using_name:
-            return obj.name
-        return obj._id
+        return obj.name if cls.compare_using_name else str(obj._id)
 
     def __eq__(self, __o: object) -> bool:
         # sourcery skip: assign-if-exp, reintroduce-else
@@ -327,6 +325,7 @@ class Logger:
         return f"<{self.__class__.__qualname__} {self.name}>"
 
     def _inherit(self) -> None:  # noqa: PLR0912,C901  # pragma: no cover
+        # sourcery skip: assign-if-exp
         if self.higher is None:
             raise ValueError("Cannot inherit if higher is None.")
 
@@ -349,13 +348,13 @@ class Logger:
         if self.attributes_to_inherit.enabled:
             self.enabled = self.higher.enabled
         else:
-            self.enabled: bool = True
+            self.enabled = True
         if self.attributes_to_inherit.ctxmgr:
             self.ctxmgr = self.higher.ctxmgr
         else:
             self.ctxmgr = IndentLogger(self)
         if self.attributes_to_inherit.format:
-            self.format: str = self.higher.format
+            self.format = self.higher.format
         else:
             self.format = DEFAULT_FORMAT
         if self.attributes_to_inherit.threshold:
@@ -363,7 +362,7 @@ class Logger:
         else:
             self.threshold = DEFAULT_THRESHOLD
         if self.attributes_to_inherit.handlers:
-            self.handlers: List[Handler] = self.higher.handlers
+            self.handlers = self.higher.handlers
         else:
             self.handlers = self.get_default_handlers()
 
@@ -444,7 +443,7 @@ class Logger:
             str: The string.
         """
         try:
-            rv = to_level(lvl, False).name.upper()  # type: ignore
+            rv = to_level(lvl, False).name.upper()
         except (ValueError, AttributeError):
             rv = str(lvl).ljust(cls.level_name_width)
 
@@ -552,6 +551,7 @@ class Logger:
         Returns:
             Optional[LogEvent]: The log event if created.
         """
+        # sourcery skip: assign-if-exp, reintroduce-else, swap-if-expression
         # Check if disabled
         if not self.enabled:
             return None
@@ -736,7 +736,7 @@ class ChangeThreshold:
             Union[Level, int]: The old threshold.
         """
         self.old_level = self.logger.threshold
-        self.logger.threshold = self.level  # type: ignore
+        self.logger.threshold = self.level
         return self.old_level
 
     def __exit__(
