@@ -323,7 +323,7 @@ class TestLogger:
     @staticmethod
     def test_thing_to_compare(monkeypatch: pytest.MonkeyPatch):
         logger = mylog.root.get_child(random_logger_name())
-        assert logger._thing_to_compare(logger) == logger._id
+        assert logger._thing_to_compare(logger) == str(logger._id)
         with monkeypatch.context() as monkey:
             monkey.setattr(mylog.Logger, "compare_using_name", True)
             assert logger._thing_to_compare(logger) == logger.name
@@ -580,7 +580,7 @@ class TestLogger:
 
     @staticmethod
     def test_is_enabled_for():
-        logger = mylog.root
+        logger = mylog.root.get_child(random_logger_name())
 
         logger.threshold = mylog.Level.debug
         assert logger.is_enabled_for(mylog.Level.debug)
@@ -623,8 +623,9 @@ class TestLogger:
         assert logger.is_enabled_for(mylog.Level.critical)
 
         logger.threshold = "fatal"  # type: ignore
-        with pytest.warns(
-            UserWarning, match="Logger threshold should be a Level"
+        with pytest.raises(
+            TypeError,
+            match=r"'>=' not supported between instances of 'Level' and 'str'",
         ):
             logger.is_enabled_for(mylog.Level.critical)
 
