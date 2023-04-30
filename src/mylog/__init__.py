@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # ruff: noqa: SLF001
 
-__version__ = "0.8.0-beta.1"
+__version__ = "0.8.0-beta.2"
 
 import abc
 import contextlib
