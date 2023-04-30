@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed warning in `Logger.is_enabled_for` about the threshold not being a `Level`
+
 ### Fixed
 
 - Fixed default value for `frame_depth` in `Logger.log` (3 -> 4)

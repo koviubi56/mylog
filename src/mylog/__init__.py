@@ -677,15 +677,6 @@ class Logger:
             bool: Whether the logger is enabled for the given level.
         """
         lvl = to_level(lvl, True)
-        if not isinstance(self.threshold, Level):
-            warnings.warn(
-                "Logger threshold should be a Level, not"
-                f" {type(self.threshold)!r} ({self.threshold!r})."
-                " Converting threshold...",
-                UserWarning,
-                stacklevel=2,
-            )
-            self.threshold = to_level(self.threshold, True)
         return lvl >= self.threshold
 
 
