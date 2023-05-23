@@ -17,13 +17,18 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3 # v2.3.1
+        uses: step-security/harden-runner
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            files.pythonhosted.org:443
+            github.com:443
+            pypi.org:443
 
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v2.6.0
+      - uses: actions/checkout
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@57ded4d7d5e986d7296eab16560982c6dd7c923b # v2.3.3
+        uses: actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
