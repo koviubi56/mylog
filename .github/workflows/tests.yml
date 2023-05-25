@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner
+        uses: step-security/harden-runner@main
         with:
           disable-sudo: true
           egress-policy: block
@@ -26,9 +26,9 @@ jobs:
             github.com:443
             pypi.org:443
 
-      - uses: actions/checkout
+      - uses: actions/checkout@main
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python
+        uses: actions/setup-python@main
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies

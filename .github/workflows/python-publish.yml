@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner
+        uses: step-security/harden-runner@main
         with:
           disable-sudo: true
           egress-policy: block
@@ -31,9 +31,9 @@ jobs:
             pypi.org:443
             upload.pypi.org:443
 
-      - uses: actions/checkout
+      - uses: actions/checkout@main
       - name: Set up Python
-        uses: actions/setup-python
+        uses: actions/setup-python@main
         with:
           python-version: "3.x"
       - name: Install dependencies
@@ -43,7 +43,7 @@ jobs:
       - name: Build package
         run: python -m build
       - name: Publish package
-        uses: pypa/gh-action-pypi-publish
+        uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}

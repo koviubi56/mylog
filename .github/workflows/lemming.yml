@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner
+        uses: step-security/harden-runner@main
         with:
           disable-sudo: true
           egress-policy: block
@@ -19,13 +19,13 @@ jobs:
             github.com:443 pypi.org:443 files.pythonhosted.org:443
 
 
-      - uses: actions/checkout
-      - uses: actions/cache
+      - uses: actions/checkout@main
+      - uses: actions/cache@main
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
       - name: Set up Python 3.11
-        uses: actions/setup-python
+        uses: actions/setup-python@main
         with:
           python-version: "3.11"
       - name: Install Lemming
