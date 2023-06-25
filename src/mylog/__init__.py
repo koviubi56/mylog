@@ -397,12 +397,11 @@ class Logger:
                 " one."
             )
         self.name = name
+        self.higher = higher
         if higher is not None:
-            self.higher = higher
             # Made a separate function so it can be overwritten
             self._inherit()
             return
-        self.higher = higher
         self.propagate = False  # ! Root logger should not propagate!
         self.list: List[LogEvent] = []
         self.indent = 0  # Should be set manually
