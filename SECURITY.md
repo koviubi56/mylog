@@ -2,5 +2,6 @@
 
 ## Report security vulnerability
 
-Report security vulnerabilities [here](mailto:koviubi56@duck.com).
-[PGP Public key](https://www.keybase.io/koviubi_56)
+Report security vulnerabilities through [GitHub](https://github.com/koviubi56/mylog/security/advisories/new), [email](mailto:koviubi56@duck.com), or [Keybase](https://keybase.io/koviubi_56).
+
+[PGP public key](https://keybase.io/koviubi_56).
