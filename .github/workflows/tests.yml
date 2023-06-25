@@ -19,12 +19,7 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@main
         with:
-          disable-sudo: true
-          egress-policy: block
-          allowed-endpoints: >
-            files.pythonhosted.org:443
-            github.com:443
-            pypi.org:443
+          egress-policy: audit
 
       - uses: actions/checkout@main
       - name: Set up Python ${{ matrix.python-version }}
