@@ -463,7 +463,9 @@ class Logger:
         """
         _indent = "  " * self.indent
         _lvl = self.level_to_str(event.level)
-        _time = str(datetime.datetime.fromtimestamp(event.time, datetime.UTC))
+        _time = str(
+            datetime.datetime.fromtimestamp(event.time, datetime.timezone.utc)
+        )
         _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
         _msg = str(event.msg)
         _name = str(self.name)
