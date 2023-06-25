@@ -33,4 +33,4 @@ jobs:
           python -m pip install -U python-lemming
       - name: Run lemming
         run: |
-          python -m lemming check . -v
+          python -m lemming -v check .
