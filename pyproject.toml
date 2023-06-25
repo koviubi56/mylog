@@ -45,11 +45,6 @@ packages = ["setup_cfg_fmt"]
 format_command = "{pyexe} -m setup_cfg_fmt --include-version-classifiers"
 # no check
 
-[[tool.lemming.formatters]]
-packages = ["isort"]
-format_command = "{pyexe} -m isort --profile black {path}"
-check_command = "{pyexe} -m isort --profile black -c {path}"
-
 [[tool.lemming.linters]]
 packages = ["pyroma"]
 command = "{pyexe} -m pyroma {path}"
