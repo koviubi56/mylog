@@ -10,6 +10,7 @@ nox.options.sessions = ["test"]
 # 3.12 not out yet
 PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
 
+
 @nox.session(python=PYTHON_VERSIONS)
 def test_coverage(session: nox.Session) -> None:
     dotenv.load_dotenv()
