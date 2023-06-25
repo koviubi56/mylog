@@ -15,7 +15,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
-# ruff: noqa: SLF001
 
 __version__ = "0.8.0-beta.2"
 
@@ -29,7 +28,7 @@ import traceback as tracebacklib
 import uuid
 import warnings
 from enum import IntEnum
-from types import TracebackType  # noqa: TCH003
+from types import TracebackType
 from typing import (
     Any,
     ClassVar,
@@ -55,9 +54,7 @@ with contextlib.suppress(Exception):
 
 UnionType = type(Union[int, str])
 T = TypeVar("T")
-DEFAULT_FORMAT = (
-    "[{name} {lvl} {time} line: {line}] {indent}{msg}"  # noqa: FS003
-)
+DEFAULT_FORMAT = "[{name} {lvl} {time} line: {line}] {indent}{msg}"
 # dataclass' kw_only argument was introduced in python 3.10
 # i don't want to make the requirement 3.10 from 3.8, so instead we check
 # whether or not kw_only is a thing. if it is we'll use it, if it's not, we'll
@@ -124,17 +121,17 @@ def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
         Union[Level, int]: The level or int.
     """
     try:
-        return Level(lvl)  # type: ignore
+        return Level(lvl)
     except ValueError:
         try:
-            return Level(int(lvl))  # type: ignore
+            return Level(int(lvl))
         except ValueError:
             try:
-                return getattr(Level, str(lvl))  # type: ignore
+                return getattr(Level, str(lvl))
             except (AttributeError, ValueError):
                 with contextlib.suppress(ValueError):
                     if int_ok:
-                        return int(lvl)  # type: ignore
+                        return int(lvl)
                 raise ValueError(
                     f"Invalid level: {lvl!r}. Must be a Level, int, or str."
                 ) from None
@@ -281,8 +278,10 @@ class AttributesToInherit:
 
 
 class Logger:
-    """THE logger class. You shouldn't really call __init__; use the root\
- logger, or the root logger's get_child"""
+    """
+    THE logger class. You shouldn't really call __init__; use the root logger,
+    or the root logger's get_child.
+    """
 
     colors: ClassVar[bool] = True
     # ↪ Should level_to_str use colors? Should be set manually.
@@ -325,7 +324,7 @@ class Logger:
     def __repr__(self) -> str:  # pragma: no cover
         return f"<{self.__class__.__qualname__} {self.name}>"
 
-    def _inherit(self) -> None:  # noqa: PLR0912,C901  # pragma: no cover
+    def _inherit(self) -> None:  # noqa: C901, PLR0912  # pragma: no cover
         # sourcery skip: assign-if-exp
         if self.higher is None:
             raise ValueError("Cannot inherit if higher is None.")
@@ -447,15 +446,10 @@ class Logger:
         except (ValueError, AttributeError):
             rv = str(lvl).ljust(cls.level_name_width)
 
-        if rv == "WARN":  # pragma: no cover
-            rv = "WARNING"
-        if rv == "FATAL":  # pragma: no cover
-            rv = "CRITICAL"
-
         if cls.colors:
             rv = cls.color(rv)
 
-        return rv  # noqa: R504
+        return rv
 
     def format_msg(self, event: LogEvent) -> str:
         """
@@ -469,9 +463,7 @@ class Logger:
         """
         _indent = "  " * self.indent
         _lvl = self.level_to_str(event.level)
-        _time = str(
-            datetime.datetime.fromtimestamp(event.time)  # noqa: DTZ006
-        )
+        _time = str(datetime.datetime.fromtimestamp(event.time, datetime.UTC))
         _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
         _msg = str(event.msg)
         _name = str(self.name)

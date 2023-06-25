@@ -10,24 +10,25 @@ select = ["ALL"]
 ignore = [
     "ANN101",
     "ANN102",
-    "ANN401",
     "COM812",
-    "D",
-    "EM101",
-    "EM102",
-    "FA100",
+    "D100",
+    "D105",
+    "D212",
+    "D205",
+    "D415",
+    "EM",
+    "FA",
     "FBT",
-    "G004",
-    "PGH003",
-    "PLR2004",
-    "RUF100",
-    "TCH",
+    "SLF001",
     "TRY003",
-    "TRY400",
 ]
-per-file-ignores = { "tests/*" = ["S101", "ANN", "SLF001"] }
+per-file-ignores = { "tests/*" = ["D", "S101"] }
 line-length = 79
 target-version = "py38"
+
+[tool.ruff.pydocstyle]
+convention = "google"
+ignore-decorators = ["typing.overload"]
 
 [[tool.lemming.linters]]
 packages = ["ruff"]

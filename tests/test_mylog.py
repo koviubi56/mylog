@@ -15,18 +15,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
-# ruff: noqa: I001
 import base64
-import dataclasses
 import secrets
 from time import time as get_unix_time
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
 
+import mylog
 import pytest
 import termcolor
-
-import mylog
 
 T = TypeVar("T")
 
@@ -134,8 +131,8 @@ def random_anything(
         rv = _random_urlsafe()
     elif rt == "int":
         rv = _random_int(True)
-    else:  # pragma: no cover
-        raise ValueError(rt)
+    else:
+        raise ValueError(rt)  # pragma: no cover
     if only_if(rv):
         return rv
     return random_anything(only_if=only_if)  # pragma: no cover
@@ -156,18 +153,7 @@ def x_not_equals_y(__x: object, __y: object, /) -> bool:
     return (__x != __y) and (__x.__ne__(__y))
 
 
-def test_dataclass():
-    try:
-        dataclasses.dataclass(kw_only=True)
-    except TypeError:
-        supports = False
-    else:
-        supports = True
-
-    assert mylog.DATACLASS_HAS_KW_ONLY is supports
-
-
-def test_to_level():  # noqa: PLR0915
+def test_to_level() -> None:
     assert mylog.to_level(mylog.Level.debug) == mylog.Level.debug
     assert mylog.to_level(mylog.Level.info) == mylog.Level.info
     assert mylog.to_level(mylog.Level.warning) == mylog.Level.warning
@@ -269,11 +255,11 @@ def random_logger_name() -> str:
     return _random_urlsafe()
 
 
-def test_nonetype():
+def test_nonetype() -> None:
     assert x_is_y(mylog.NoneType, type(None))
 
 
-def test_setattr():
+def test_setattr() -> None:
     original = random_anything()
     new = random_anything()
     obj = SimpleNamespace(exampleattr=original)
@@ -284,7 +270,7 @@ def test_setattr():
     assert obj.exampleattr == original
 
 
-def test_stream_writer_handler():
+def test_stream_writer_handler() -> None:
     stream = Stream()
     handler = mylog.StreamWriterHandler(stream, flush=True)
     logger = mylog.root.get_child(random_logger_name())
@@ -322,7 +308,7 @@ def test_stream_writer_handler():
 
 class TestLogger:
     @staticmethod
-    def test_thing_to_compare(monkeypatch: pytest.MonkeyPatch):
+    def test_thing_to_compare(monkeypatch: pytest.MonkeyPatch) -> None:
         logger = mylog.root.get_child(random_logger_name())
         assert logger._thing_to_compare(logger) == str(logger._id)
         with monkeypatch.context() as monkey:
@@ -330,7 +316,7 @@ class TestLogger:
             assert logger._thing_to_compare(logger) == logger.name
 
     @staticmethod
-    def test_eq():
+    def test_eq() -> None:
         l1 = l2 = mylog.root.get_child(random_logger_name())
         assert x_equals_y(l1, l2)
         assert x_equals_y(l2, l1)
@@ -338,7 +324,7 @@ class TestLogger:
         assert l1.__eq__(object()) == NotImplemented
 
     @staticmethod
-    def test_ne():
+    def test_ne() -> None:
         l1 = mylog.root.get_child(random_logger_name())
         l2 = mylog.root.get_child(random_logger_name())
         assert x_not_equals_y(l1, l2)
@@ -346,13 +332,13 @@ class TestLogger:
         assert l1.__ne__(object()) == NotImplemented
 
     @staticmethod
-    def test_get_default_handlers():
+    def test_get_default_handlers() -> None:
         _handlers = mylog.root.get_default_handlers()
         assert isinstance(_handlers, list)
         assert iterable_isinstance(_handlers, mylog.Handler)
 
     @staticmethod
-    def test_init():
+    def test_init() -> None:
         with pytest.raises(
             ValueError,
             match="Cannot create a new logger: Root logger already exists",
@@ -379,7 +365,7 @@ class TestLogger:
             logger._inherit()
 
     @staticmethod
-    def test_color():
+    def test_color() -> None:
         logger = mylog.root
         assert logger.color("quick brown fox") == "quick brown fox"
         assert logger.color("DEBUG") == termcolor.colored(
@@ -402,7 +388,7 @@ class TestLogger:
         )
 
     @staticmethod
-    def test_level_to_string():
+    def test_level_to_string() -> None:
         logger = mylog.root
         assert logger.level_to_str(mylog.Level.debug) == termcolor.colored(
             "DEBUG".ljust(8), "blue"
@@ -435,7 +421,7 @@ class TestLogger:
         assert logger.level_to_str(nli) == str(nli).ljust(8)
 
     @staticmethod
-    def test_format_msg():
+    def test_format_msg() -> None:
         logger = mylog.root
         lvl = _random_level()
         event = mylog.LogEvent(str(random_anything()), lvl[0], 0, 0, 0, False)
@@ -452,7 +438,7 @@ class TestLogger:
             logger.format_msg(event)
 
     @staticmethod
-    def test_actually_log():
+    def test_actually_log() -> None:
         logger = mylog.root.get_child(random_logger_name())
         logger.list = []
         logger.indent = _randint(0, 10)
@@ -478,10 +464,9 @@ class TestLogger:
         assert stream.wrote == str(msg)
 
     @staticmethod
-    def test_log_propagate():
+    def test_log_propagate() -> None:
         logger = mylog.root.get_child(random_logger_name())
-        if not logger.higher:  # pragma: no cover
-            raise TypeError(f"{logger.higher = !r}")
+        assert logger.higher
         logger.list = []
         logger.indent = _randint(0, 10)
         logger.propagate = True
@@ -515,7 +500,7 @@ class TestLogger:
             mylog.root.propagate = False
 
     @staticmethod
-    def test_log_no_propagate():
+    def test_log_no_propagate() -> None:
         logger = mylog.root
         logger.list = []
         logger.indent = _randint(0, 10)
@@ -537,7 +522,7 @@ class TestLogger:
         assert event.frame_depth == frame_depth
 
     @staticmethod
-    @pytest.mark.parametrize(  # noqa: PT006
+    @pytest.mark.parametrize(
         ("method_name", "lvl"),
         [
             ("debug", mylog.Level.debug),
@@ -547,7 +532,7 @@ class TestLogger:
             ("critical", mylog.Level.critical),
         ],
     )
-    def test_log_methods(method_name: str, lvl: mylog.Level):
+    def test_log_methods(method_name: str, lvl: mylog.Level) -> None:
         logger = mylog.root
         logger.list = []
         logger.indent = _randint(0, 10)
@@ -566,7 +551,7 @@ class TestLogger:
         assert event.indent == logger.indent
 
     @staticmethod
-    def test_get_child():
+    def test_get_child() -> None:
         parent = mylog.root
         child = parent.get_child(random_logger_name())
 
@@ -580,7 +565,7 @@ class TestLogger:
         assert child.threshold == parent.threshold
 
     @staticmethod
-    def test_is_enabled_for():
+    def test_is_enabled_for() -> None:
         logger = mylog.root.get_child(random_logger_name())
 
         logger.threshold = mylog.Level.debug
@@ -623,7 +608,7 @@ class TestLogger:
         assert not logger.is_enabled_for(mylog.Level.error)
         assert logger.is_enabled_for(mylog.Level.critical)
 
-        logger.threshold = "fatal"  # type: ignore
+        logger.threshold = "fatal"
         with pytest.raises(
             TypeError,
             match=r"'>=' not supported between instances of 'Level' and 'str'",
@@ -631,7 +616,7 @@ class TestLogger:
             logger.is_enabled_for(mylog.Level.critical)
 
     @staticmethod
-    def test_enabled():
+    def test_enabled() -> None:
         logger = mylog.root.get_child(random_logger_name())
         logger.critical(random_anything())
         assert logger.list
@@ -646,7 +631,7 @@ class TestLogger:
         assert logger.list
 
 
-def test_indent_logger():
+def test_indent_logger() -> None:
     logger = mylog.root
     start = _randint(0, 6)
     logger.indent = start
@@ -657,7 +642,7 @@ def test_indent_logger():
     assert logger.indent == start
 
 
-def test_change_threshold():
+def test_change_threshold() -> None:
     logger = mylog.root
     start = _random_level()
     new = _random_level()
