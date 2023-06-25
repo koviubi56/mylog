@@ -7,8 +7,10 @@ import nox
 # run `test`, because `test_coverage` also uploads to CodeCov
 nox.options.sessions = ["test"]
 
+# 3.12 not out yet
+PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
 
-@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12"])
+@nox.session(python=PYTHON_VERSIONS)
 def test_coverage(session: nox.Session) -> None:
     dotenv.load_dotenv()
     session.install("-U", "pip", "setuptools", "wheel")
@@ -32,7 +34,7 @@ def test_coverage(session: nox.Session) -> None:
     )
 
 
-@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12"])
+@nox.session(python=PYTHON_VERSIONS)
 def test(session: nox.Session) -> None:
     session.install("-U", "pip", "setuptools", "wheel")
     session.install("-U", "-e", ".", "pytest-randomly")
