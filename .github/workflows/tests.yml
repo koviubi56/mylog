@@ -33,7 +33,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install tox tox-gh-actions
+          python -m pip install -U pip setuptools wheel
+          pip install -Ur test-requirements.txt
       - name: Test with tox
         run: tox
+      - uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
