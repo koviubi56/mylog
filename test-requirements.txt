@@ -1,5 +1,0 @@
--e .
-pytest-randomly
-pytest-cov
-tox
-tox-gh-actions

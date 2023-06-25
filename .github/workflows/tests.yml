@@ -13,7 +13,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.11", "3.10", "3.9", "3.8"]
 
     steps:
       - name: Harden Runner
@@ -22,16 +21,27 @@ jobs:
           egress-policy: audit
 
       - uses: actions/checkout@main
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@main
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install -U pip setuptools wheel
-          pip install -Ur test-requirements.txt
-      - name: Test with tox
-        run: tox
-      - uses: codecov/codecov-action@main
+          python-version: 3.8
+      - name: Set up Python
+        uses: actions/setup-python@main
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          python-version: 3.9
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: 3.10
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: 3.11
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: 3.12
+      - name: Install nox
+        run: python -m pip install nox
+      - name: Run nox
+        run: nox -s test_coverage

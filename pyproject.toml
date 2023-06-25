@@ -22,7 +22,7 @@ ignore = [
     "SLF001",
     "TRY003",
 ]
-per-file-ignores = { "tests/*" = ["D", "S101"] }
+per-file-ignores = { "tests/*" = ["D", "S101"], "noxfile.py" = ["D103"] }
 line-length = 79
 target-version = "py38"
 
