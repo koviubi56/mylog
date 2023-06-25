@@ -52,6 +52,6 @@ Please make sure to update tests as appropriate.
 
 ## License
 
-[GNU LGPLv3.0+](LICENSE)
+[GNU GPLv3.0+](LICENSE)
 
 **Please note, that by contributing to mylog, you accept the DCO. [More info](CONTRIBUTING.md#dco)**
