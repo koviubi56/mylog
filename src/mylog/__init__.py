@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-__version__ = "0.8.0-beta.2"
+__version__ = "0.8.0"
 
 import abc
 import contextlib

@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### [0.8.0-beta.2] - 2023-04-30
+## [0.8.0] - 2023-07-31
+
+_Changes from pre-releases are not listed here!_
+
+### Changed
+
+- Now the package metadata is stored in `pyproject.toml` instead of `setup.cfg`
+
+## [0.8.0-beta.2] - 2023-04-30
 
 ### Removed
 
