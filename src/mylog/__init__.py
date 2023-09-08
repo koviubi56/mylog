@@ -161,9 +161,9 @@ class SetAttr:
 
     def __exit__(
         self,
-        typ: Type[BaseException],
-        value: BaseException,
-        tb: TracebackType,
+        typ: Optional[Type[BaseException]],
+        value: Optional[BaseException],
+        tb: Optional[TracebackType],
     ) -> None:
         """Exit the context manager."""
         setattr(self.obj, self.name, self.old_value)
@@ -692,9 +692,9 @@ class IndentLogger:
 
     def __exit__(
         self,
-        typ: Type[BaseException],
-        value: BaseException,
-        tb: TracebackType,
+        typ: Optional[Type[BaseException]],
+        value: Optional[BaseException],
+        tb: Optional[TracebackType],
     ) -> None:
         """
         Unindent the logger by one.
@@ -735,9 +735,9 @@ class ChangeThreshold:
 
     def __exit__(
         self,
-        typ: Type[BaseException],
-        value: BaseException,
-        tb: TracebackType,
+        typ: Optional[Type[BaseException]],
+        value: Optional[BaseException],
+        tb: Optional[TracebackType],
     ) -> None:
         """
         Restore the threshold.
