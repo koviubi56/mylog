@@ -2,7 +2,7 @@ import os
 
 import nox
 
-# By default (unless explicit set otherwise) running now should only
+# By default (unless explicit set otherwise) running nox should only
 # run `test`, because `test_coverage` also uploads to CodeCov
 nox.options.sessions = ["test"]
 
