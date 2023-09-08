@@ -1,10 +1,10 @@
-# Contributing guidlines
+# Contributing guidelines
 
 First off, thank you for considering contributing.
 
 **Please note, that by contributing to our project you agree to the DCO! [More info](#dco)**
 
-## Why is this guildline exists?
+## Why do these guidelines exists?
 
 Following these guidelines helps to communicate that you respect the time of
 the developers managing and developing this open source project. In return,
@@ -26,7 +26,7 @@ documentation, submitting bug reports and feature requests or writing code.
 - Search open **and closed** issues **and** pull requests.
 - Please, **don't** open an issue for questions. Ask it in the discussions tab!
 - Make sure to put an X to the square brackets at the end of the issue, if you
-  agree to the contributing guidlines, the code of conduct, and the DCO.
+  agree to the contributing guidelines, the code of conduct, and the DCO.
   **If you don't put an X to all of them, your issue will be closed!**
 
 ## How to file a bug report?
@@ -50,25 +50,6 @@ Click [here](https://github.com/koviubi56/mylog/issues/new?assignees=&labels=enh
 - Request review
 - Wait...
 
-## Priority
-
-### Small
-
-- Spelling / grammar fixes
-- Typo correction, white space and formatting changes
-- Comment clean up
-- Adding logging messages or debugging output
-
-### Medium
-
-- Bug fixes that fix errors that maked a part of the program buggy/unuseable.
-- New features
-
-### High
-
-- Bug fixes that fix errors that maked the whole program buggy/unuseable.
-- Security vulnerabilities
-
 ## Security vulnerabilities
 
 In order to determine whether you are dealing with a security issue, ask
@@ -90,15 +71,14 @@ How to report them can be found in the [SECURITY.md](SECURITY.md) file.
 - _"contribution"_ refers to any contribution, committing, and/or pushing to our project.
 - _"contributor"_, _"you"_, _"I"_, and _"me"_ refer to the person who made the contribution.
 - _"DCO"_ refers to the Developer Certificate of Origin.
-- Please note, that [the amendments](#dco-amendments) apply!
 
-By contributing, committing, and/or pushing to our project you MUST fully understand and fully agree to the whole DCO including its amendments stated here.
+By contributing, committing, and/or pushing to our project you MUST fully understand and fully agree to the whole DCO.
 
-Contributing to our project in any way means that you fully understand and fully agree to the whole DCO including its amendments stated here.
+Contributing to our project in any way means that you fully understand and fully agree to the whole DCO.
 
-If you do not fully understand and fully agree to the DCO including its amendments stated here, you may not and MUST NOT contribute to our project.
+If you do not fully understand and fully agree to the DCO, you may not and MUST NOT contribute to our project.
 
-Contributions and pull requests may be rejected if you do not fully understand and fully agree to the whole DCO including its amendments stated here.
+Contributions and pull requests may be rejected if you do not fully understand and fully agree to the whole DCO.
 
 A copy of the DCO can be read at <https://developercertificate.org/> or here:
 
@@ -135,16 +115,3 @@ A copy of the DCO can be read at <https://developercertificate.org/> or here:
 > personal information I submit with it, including my sign-off) is
 > maintained indefinitely and may be redistributed consistent with
 > this project or the open source license(s) involved.
-
-### DCO amendments
-
-Please note, that these amendments are not made by the Linux Foundation, and they are not part of the official DCO, but you still MUST fully understand and fully agree to them.
-
-| Number                      | Letter |
-| --------------------------- | ------ |
-| [1st](#dco-amendment-first) | (e)    |
-
-#### DCO amendment first
-
-> (e) I understand and agree that I may not get credit for any
-> of my contributions to this project.
