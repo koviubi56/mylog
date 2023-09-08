@@ -1,6 +1,5 @@
 import os
 
-import dotenv
 import nox
 
 # By default (unless explicit set otherwise) running now should only
@@ -13,6 +12,8 @@ PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11"]
 
 @nox.session(python=PYTHON_VERSIONS)
 def test_coverage(session: nox.Session) -> None:
+    import dotenv
+
     dotenv.load_dotenv()
     session.install("-U", "pip", "setuptools", "wheel")
     session.install("-U", "-e", ".", "pytest-randomly", "pytest-codecov[git]")
