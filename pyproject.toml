@@ -19,7 +19,6 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    # TODO: check these vvvvvvvvvvvvvvvvvvvvv
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -31,6 +30,14 @@ classifiers = [
 ]
 dynamic = ["version", "dependencies"]
 
+[project.optional-dependencies]
+dev = ["nox", "python-lemming"]
+
+[project.urls]
+"Release notes" = "https://github.com/koviubi56/mylog/blob/main/CHANGELOG.md"
+Source = "https://github.com/koviubi56/mylog"
+"Bug Tracker" = "https://github.com/koviubi56/mylog/issues"
+
 [tool.setuptools.dynamic]
 version = { attr = "mylog.__version__" }
 dependencies = { file = "requirements.txt" }
@@ -38,10 +45,6 @@ dependencies = { file = "requirements.txt" }
 [tool.setuptools.package-data]
 mylog = ["py.typed"]
 
-[project.urls]
-"Release notes" = "https://github.com/koviubi56/mylog/blob/main/CHANGELOG.md"
-Source = "https://github.com/koviubi56/mylog"
-"Bug Tracker" = "https://github.com/koviubi56/mylog/issues"
 
 [tool.isort]
 profile = "black"
