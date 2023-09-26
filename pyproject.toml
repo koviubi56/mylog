@@ -84,11 +84,6 @@ packages = ["black"]
 format_command = "{pyexe} -m black -l 79 {path}"
 check_command = "{pyexe} -m black -l 79 --check --extend-exclude .*venv.* {path}"
 
-[[tool.lemming.formatters]]
-packages = ["setup_cfg_fmt"]
-format_command = "{pyexe} -m setup_cfg_fmt --include-version-classifiers"
-# no check
-
 [[tool.lemming.linters]]
 packages = ["pyroma"]
 command = "{pyexe} -m pyroma {path}"
