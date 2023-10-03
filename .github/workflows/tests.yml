@@ -40,7 +40,7 @@ jobs:
       - name: Set up Python 3.12
         uses: actions/setup-python@main
         with:
-          python-version: "3.12-dev"
+          python-version: "3.12"
       - name: Install requirements
         run: python -m pip install python-dotenv nox
       - name: Run nox
