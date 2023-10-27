@@ -42,7 +42,7 @@ logger.info("Hello, world!")
 
 ## API reference
 
-You can find the API reference in [our wiki](https://github.com/koviubi56/mylog/wiki/API-Reference).
+For the API reference see the docstrings.
 
 ## Contributing
 
