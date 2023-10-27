@@ -66,6 +66,38 @@ ignore = [
     "SLF001",
     "TRY003",
 ]
+fixable = [
+    "F632",
+    "E711",
+    "F901",
+    "E703",
+    "E712",
+    "E713",
+    "E714",
+    "W291",
+    "W292",
+    "W293",
+    "I001",
+    "PT001",
+    "PT003",
+    "PT006",
+    "PT009",
+    "PT023",
+    "Q",
+    "RSE102",
+    "SIM101",
+    "SIM103",
+    "SIM109",
+    "SIM112",
+    "SIM117",
+    "SIM118",
+    "SIM201",
+    "SIM202",
+    "SIM208",
+    "SIM210",
+    "SIM211",
+    "SIM212",
+]
 per-file-ignores = { "tests/*" = ["D", "S101"], "noxfile.py" = ["D103"] }
 line-length = 79
 target-version = "py38"
@@ -74,15 +106,16 @@ target-version = "py38"
 convention = "google"
 ignore-decorators = ["typing.overload"]
 
-[[tool.lemming.linters]]
+[[tool.lemming.formatters]]
 packages = ["ruff"]
-command = "{pyexe} -m ruff check . --show-source"
+format_command = "{pyexe} -m ruff check --fix . --show-source"
+check_command = "{pyexe} -m ruff check . --show-source"
 run_first = true
 
 [[tool.lemming.formatters]]
-packages = ["black"]
-format_command = "{pyexe} -m black -l 79 {path}"
-check_command = "{pyexe} -m black -l 79 --check --extend-exclude .*venv.* {path}"
+packages = ["ruff"]
+format_command = "{pyexe} -m ruff format {path}"
+check_command = "{pyexe} -m ruff format --check {path}"
 
 [[tool.lemming.linters]]
 packages = ["pyroma"]

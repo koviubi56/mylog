@@ -307,7 +307,8 @@ class Logger:
     def __eq__(self, __o: object) -> bool:
         # sourcery skip: assign-if-exp, reintroduce-else
         if isinstance(
-            __o, Logger  # Hardcoded, because class can be subclassed
+            __o,
+            Logger,  # Hardcoded, because class can be subclassed
         ):
             return self._thing_to_compare(self) == self._thing_to_compare(__o)
         return NotImplemented
@@ -315,7 +316,8 @@ class Logger:
     def __ne__(self, __o: object) -> bool:
         # sourcery skip: assign-if-exp, reintroduce-else
         if isinstance(
-            __o, Logger  # Hardcoded, because class can be subclassed
+            __o,
+            Logger,  # Hardcoded, because class can be subclassed
         ):
             return self._thing_to_compare(self) != self._thing_to_compare(__o)
 
