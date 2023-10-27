@@ -6,7 +6,7 @@ import nox
 # run `test`, because `test_coverage` also uploads to CodeCov
 nox.options.sessions = ["test"]
 
-PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
 
 @nox.session(python=PYTHON_VERSIONS)
