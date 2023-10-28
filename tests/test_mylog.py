@@ -432,7 +432,7 @@ class TestLogger:
         event = mylog.LogEvent(str(random_anything()), lvl[0], 0, 0, 0, True)
 
         with pytest.warns(
-            UserWarning, match="No traceback available, but tb=True"
+            UserWarning, match=r"No traceback available, but traceback=True"
         ):
             logger.format_msg(event)
 
@@ -451,7 +451,10 @@ class TestLogger:
         frame_depth = _randint(0, 3)
 
         time = get_unix_time()
-        logger._actually_log(lvl[0], msg, frame_depth, False)
+        log_event = mylog.LogEvent(
+            str(msg), lvl[1], time, logger.indent, frame_depth, False
+        )
+        logger._actually_log(log_event)
 
         assert len(logger.list) == 1
         event = logger.list[0]
