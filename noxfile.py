@@ -26,17 +26,31 @@ def is_session_version(session: nox.Session, version: str) -> bool:
     )
 
 
+NORMAL_PYTEST_COMMAND = (
+    "pytest",
+    "--ff",
+    "-vv",
+    "-r",
+    "A",
+    "-l",
+    "--color=yes",
+    "--code-highlight=yes",
+    "--continue-on-collection-errors",
+)
+
+
 @nox.session(python=PYTHON_VERSIONS)
 def test_coverage(session: nox.Session) -> None:
     session.install("-U", "pip", "setuptools", "wheel")
+    session.install("-U", "-e", ".", "pytest-randomly")
     try:
-        session.install(
-            "-U", "-e", ".", "pytest-randomly", "pytest-codecov[git]"
+        session.install("pytest-codecov[git]")
+    except BaseException:  # noqa: BLE001
+        session.warn(
+            "Failed to install pytest-codecov, continuing without coverage..."
         )
-    except BaseException:
-        if is_session_version(session, "3.13") and session.env.get("WINDIR"):
-            session.skip("XFAIL: doesn't work on python 3.13 windows")
-        raise
+        session.run(*NORMAL_PYTEST_COMMAND)
+        return
     try:
         env = {"CODECOV_TOKEN": os.environ["CODECOV_TOKEN"]}
     except KeyError:
@@ -60,14 +74,4 @@ def test_coverage(session: nox.Session) -> None:
 def test(session: nox.Session) -> None:
     session.install("-U", "pip", "setuptools", "wheel")
     session.install("-U", "-e", ".", "pytest-randomly")
-    session.run(
-        "pytest",
-        "--ff",
-        "-vv",
-        "-r",
-        "A",
-        "-l",
-        "--color=yes",
-        "--code-highlight=yes",
-        "--continue-on-collection-errors",
-    )
+    session.run(*NORMAL_PYTEST_COMMAND)
