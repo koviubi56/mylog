@@ -11,11 +11,16 @@ PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
 @nox.session(python=PYTHON_VERSIONS)
 def test_coverage(session: nox.Session) -> None:
-    import dotenv
-
-    dotenv.load_dotenv()
     session.install("-U", "pip", "setuptools", "wheel")
-    session.install("-U", "-e", ".", "pytest-randomly", "pytest-codecov[git]")
+    try:
+        session.install(
+            "-U", "-e", ".", "pytest-randomly", "pytest-codecov[git]"
+        )
+    except BaseException:
+        session.warn(session.env)
+        session.warn(session.name)
+        session.warn(session.python)
+        raise
     try:
         env = {"CODECOV_TOKEN": os.environ["CODECOV_TOKEN"]}
     except KeyError:
