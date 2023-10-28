@@ -55,13 +55,11 @@ ignore = [
     "ANN101",
     "ANN102",
     "COM812",
-    "D100",
     "D105",
     "D212",
-    "D205",
     "D415",
     "EM",
-    "FA",
+    "FA100",
     "FBT",
     "SLF001",
     "TRY003",
@@ -98,7 +96,14 @@ fixable = [
     "SIM211",
     "SIM212",
 ]
-per-file-ignores = { "tests/*" = ["D", "S101"], "noxfile.py" = ["D103"] }
+per-file-ignores = { "tests/*" = [
+    "D",
+    "S101",
+], "noxfile.py" = [
+    "D",
+], "setup.py" = [
+    "D",
+] }
 line-length = 79
 target-version = "py38"
 

@@ -163,7 +163,7 @@ class SetAttr:
         self,
         typ: Optional[Type[BaseException]],
         value: Optional[BaseException],
-        tb: Optional[TracebackType],
+        traceback: Optional[TracebackType],
     ) -> None:
         """Exit the context manager."""
         setattr(self.obj, self.name, self.old_value)
@@ -178,7 +178,7 @@ class LogEvent:
     time: float  # ! UNIX seconds
     indent: int
     frame_depth: int
-    tb: bool
+    traceback: bool
 
 
 @runtime_checkable
@@ -261,7 +261,8 @@ class StreamWriterHandler(Handler):
 class AttributesToInherit:
     """
     What attributes to inherit.
-    Changes made to the parent logger won't be made to the children.
+
+    Note: Changes made to the parent logger won't be made to the children.
     """
 
     propagate: bool = False
@@ -279,8 +280,10 @@ class AttributesToInherit:
 
 class Logger:
     """
-    THE logger class. You shouldn't really call __init__; use the root logger,
-    or the root logger's get_child.
+    THE logger class.
+
+    You shouldn't really call `__init__`; use the root logger, or the root
+    logger's `get_child`.
     """
 
     colors: ClassVar[bool] = True
@@ -305,7 +308,6 @@ class Logger:
         return obj.name if cls.compare_using_name else str(obj._id)
 
     def __eq__(self, __o: object) -> bool:
-        # sourcery skip: assign-if-exp, reintroduce-else
         if isinstance(
             __o,
             Logger,  # Hardcoded, because class can be subclassed
@@ -314,7 +316,6 @@ class Logger:
         return NotImplemented
 
     def __ne__(self, __o: object) -> bool:
-        # sourcery skip: assign-if-exp, reintroduce-else
         if isinstance(
             __o,
             Logger,  # Hardcoded, because class can be subclassed
@@ -327,7 +328,6 @@ class Logger:
         return f"<{self.__class__.__qualname__} {self.name}>"
 
     def _inherit(self) -> None:  # noqa: C901, PLR0912  # pragma: no cover
-        # sourcery skip: assign-if-exp
         if self.higher is None:
             raise ValueError("Cannot inherit if higher is None.")
 
@@ -371,8 +371,9 @@ class Logger:
     @staticmethod
     def get_default_handlers() -> List[Handler]:
         """
-        Get the default handlers. Please note, that overwriting this function\
- will not change the handlers.
+        Get the default handlers.
+
+        This is called once in `__init__` and `_inherit`.
 
         Returns:
             List[Handler]: The default handlers.
@@ -471,13 +472,15 @@ class Logger:
         _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
         _msg = str(event.msg)
         _name = str(self.name)
-        if (event.tb) and (sys.exc_info() == (None, None, None)):
+        if (event.traceback) and (sys.exc_info() == (None, None, None)):
             warnings.warn(
-                "No traceback available, but tb=True",
+                "No traceback available, but traceback=True",
                 UserWarning,
                 stacklevel=event.frame_depth - 1,
             )
-        _tb = ("\n" + tracebacklib.format_exc()) if event.tb else ""
+        _traceback = (
+            ("\n" + tracebacklib.format_exc()) if event.traceback else ""
+        )
         return (
             self.format.format(
                 indent=_indent,
@@ -487,39 +490,26 @@ class Logger:
                 msg=_msg,
                 name=_name,
             )
-            + _tb
+            + _traceback
             + "\n"
         )
 
     def _actually_log(
         self,
-        lvl: Levelable,
-        msg: Stringable,
-        frame_depth: int,
-        tb: bool,
-    ) -> LogEvent:  # sourcery skip: remove-unnecessary-cast
+        event: LogEvent,
+    ) -> LogEvent:
         """
         Actually log the message. ONLY USE THIS INTERNALLY!
+
         ! THIS DOES *NOT* CHECK IF IT SHOULD BE LOGGED! THIS IS *NOT* IN THE
         ! PUBLIC API, AND IT MUST NOT BE CALLED EXCEPT INTERNALLY!
 
         Args:
-            lvl (Levelable): The level of the message.
-            msg (Stringable): The message.
-            frame_depth (int): The depth of the frame.
-            tb (bool): Whether to include the traceback.
+            event (LogEvent): The event to log.
 
         Returns:
             LogEvent: The log event.
         """
-        event = LogEvent(
-            msg=str(msg),
-            level=to_level(lvl, True),
-            time=time.time(),
-            indent=self.indent,
-            frame_depth=frame_depth,
-            tb=bool(tb),
-        )
         self.list.append(event)
         for handler in self.handlers:
             handler.handle(self, event)
@@ -534,6 +524,7 @@ class Logger:
     ) -> Optional[LogEvent]:
         """
         Log the message. Checks if the logger is enabled, propagate, and stuff.
+
         This IS in the public api, but (unless you need it) use the methods
         debug, info, warning, error, critical.
 
@@ -547,7 +538,6 @@ class Logger:
         Returns:
             Optional[LogEvent]: The log event if created.
         """
-        # sourcery skip: assign-if-exp, reintroduce-else, swap-if-expression
         # Check if disabled
         if not self.enabled:
             return None
@@ -564,11 +554,19 @@ class Logger:
                 return None
             # Log with parent
             return self.higher.log(lvl, msg, traceback, frame_depth + 1)
-        # Check if it's enabled
-        if not self.is_enabled_for(lvl):
+        event = LogEvent(
+            msg=str(msg),
+            level=to_level(lvl, True),
+            time=time.time(),
+            indent=self.indent,
+            frame_depth=frame_depth,
+            traceback=bool(traceback),
+        )
+        # Check if it should be logged
+        if not self.should_be_logged(event):
             return None
         # Log
-        return self._actually_log(lvl, msg, frame_depth, traceback)
+        return self._actually_log(event)
 
     def debug(
         self, msg: Stringable, traceback: bool = False
@@ -675,6 +673,18 @@ class Logger:
         lvl = to_level(lvl, True)
         return lvl >= self.threshold
 
+    def should_be_logged(self, event: LogEvent) -> bool:
+        """
+        Returns whether or not `event` should be logged.
+
+        Args:
+            event (LogEvent): The log event in question.
+
+        Returns:
+            bool: True if it should be logged, False otherwise.
+        """
+        return self.is_enabled_for(event.level)
+
 
 @dataclasses.dataclass(order=True)
 class IndentLogger:
@@ -696,7 +706,7 @@ class IndentLogger:
         self,
         typ: Optional[Type[BaseException]],
         value: Optional[BaseException],
-        tb: Optional[TracebackType],
+        traceback: Optional[TracebackType],
     ) -> None:
         """
         Unindent the logger by one.
@@ -704,7 +714,7 @@ class IndentLogger:
         Args:
             typ (Type[BaseException]): The exception type.
             value (BaseException): The exception.
-            tb (TracebackType): The traceback.
+            traceback (TracebackType): The traceback.
         """
         self.logger.indent -= 1
 
@@ -739,15 +749,15 @@ class ChangeThreshold:
         self,
         typ: Optional[Type[BaseException]],
         value: Optional[BaseException],
-        tb: Optional[TracebackType],
+        traceback: Optional[TracebackType],
     ) -> None:
         """
         Restore the threshold.
 
         Args:
-            typ (Type[BaseException]): The exception type.
-            value (BaseException): The exception.
-            tb (TracebackType): The traceback.
+            typ (Optional[Type[BaseException]]): The exception type.
+            value (Optional[BaseException]): The exception.
+            traceback (Optional[TracebackType]): The traceback.
         """
         self.logger.threshold = self.old_level
 

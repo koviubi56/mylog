@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Added `Logger.should_be_logged(self: Self@Logger, event: LogEvent) -> bool`**
+
 ## [0.8.0] - 2023-07-31
 
 _Changes from pre-releases are not listed here!_

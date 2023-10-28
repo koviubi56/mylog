@@ -70,7 +70,6 @@ def _randchoice(seq: Sequence[T]) -> T:
 def _random_int(
     neg_ok: bool, *, only_if: Callable[[int], bool] = lambda _: True
 ) -> int:
-    # sourcery skip: assign-if-exp, reintroduce-else
     if neg_ok:
         rv = _randint(-50, 50)
     rv = _randint(0, 100)
