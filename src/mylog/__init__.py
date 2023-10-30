@@ -54,7 +54,7 @@ with contextlib.suppress(Exception):
 
 UnionType = type(Union[int, str])
 T = TypeVar("T")
-DEFAULT_FORMAT = "[{name} {lvl} {time} line: {line}] {indent}{msg}"
+DEFAULT_FORMAT = "[{name} {level} {time} line: {line}] {indent}{message}"
 # dataclass' kw_only argument was introduced in python 3.10
 # i don't want to make the requirement 3.10 from 3.8, so instead we check
 # whether or not kw_only is a thing. if it is we'll use it, if it's not, we'll
@@ -93,24 +93,24 @@ Levelable = Union[Level, Stringable, int]
 
 @overload
 def to_level(
-    lvl: Levelable, int_ok: Literal[True] = False
+    level: Levelable, int_ok: Literal[True] = False
 ) -> Union[Level, int]:  # pragma: no cover
     ...
 
 
 @overload
 def to_level(
-    lvl: Levelable, int_ok: Literal[False] = False
+    level: Levelable, int_ok: Literal[False] = False
 ) -> Level:  # pragma: no cover
     ...
 
 
-def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
+def to_level(level: Levelable, int_ok: bool = False) -> Union[Level, int]:
     """
     Convert a Levelable to a Level (or int).
 
     Args:
-        lvl (Levelable): The levelable object to convert.
+        level (Levelable): The levelable object to convert.
         int_ok (bool, optional): If there's no level, can this function return\
  an int? Defaults to False.
 
@@ -121,19 +121,19 @@ def to_level(lvl: Levelable, int_ok: bool = False) -> Union[Level, int]:
         Union[Level, int]: The level or int.
     """
     try:
-        return Level(lvl)
+        return Level(level)
     except ValueError:
         try:
-            return Level(int(lvl))
+            return Level(int(level))
         except ValueError:
             try:
-                return getattr(Level, str(lvl))
+                return getattr(Level, str(level))
             except (AttributeError, ValueError):
                 with contextlib.suppress(ValueError):
                     if int_ok:
-                        return int(lvl)
+                        return int(level)
                 raise ValueError(
-                    f"Invalid level: {lvl!r}. Must be a Level, int, or str."
+                    f"Invalid level: {level!r}. Must be a Level, int, or str."
                 ) from None
 
 
@@ -173,9 +173,9 @@ class SetAttr:
 class LogEvent:
     """A log event."""
 
-    msg: str
+    message: str
     level: Levelable
-    time: float  # ! UNIX seconds
+    time: float  # ! UNIX seconds (see time.time())
     indent: int
     frame_depth: int
     traceback: bool
@@ -236,7 +236,7 @@ class StreamWriterHandler(Handler):
     stream: StreamProtocol
     flush: bool = True
     use_colors: bool = True
-    format_msg: bool = True
+    format_message: bool = True
 
     def handle(self, logger: "Logger", event: LogEvent) -> None:
         """
@@ -247,12 +247,12 @@ class StreamWriterHandler(Handler):
             event (LogEvent): The event.
         """
         with SetAttr(logger, "colors", self.use_colors):
-            msg = (
-                (logger.format_msg(event))
-                if (self.format_msg)
-                else (event.msg)
+            message = (
+                (logger.format_message(event))
+                if (self.format_message)
+                else (event.message)
             )
-        self.stream.write(msg)
+        self.stream.write(message)
         if self.flush:
             self.stream.flush()
 
@@ -434,27 +434,27 @@ class Logger:
         return rv
 
     @classmethod
-    def level_to_str(cls, lvl: Levelable) -> str:
+    def level_to_str(cls, level: Levelable) -> str:
         """
         Convert a level to a string.
 
         Args:
-            lvl (Levelable): The level.
+            level (Levelable): The level.
 
         Returns:
             str: The string.
         """
         try:
-            rv = to_level(lvl, False).name.upper()
+            rv = to_level(level, False).name.upper()
         except (ValueError, AttributeError):
-            rv = str(lvl).ljust(cls.level_name_width)
+            rv = str(level).ljust(cls.level_name_width)
 
         if cls.colors:
             rv = cls.color(rv)
 
         return rv
 
-    def format_msg(self, event: LogEvent) -> str:
+    def format_message(self, event: LogEvent) -> str:
         """
         Format the message.
 
@@ -465,12 +465,12 @@ class Logger:
             str: The formatted message.
         """
         _indent = "  " * self.indent
-        _lvl = self.level_to_str(event.level)
+        _level = self.level_to_str(event.level)
         _time = str(
             datetime.datetime.fromtimestamp(event.time, datetime.timezone.utc)
         )
         _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
-        _msg = str(event.msg)
+        _message = str(event.message)
         _name = str(self.name)
         if (event.traceback) and (sys.exc_info() == (None, None, None)):
             warnings.warn(
@@ -484,10 +484,10 @@ class Logger:
         return (
             self.format.format(
                 indent=_indent,
-                lvl=_lvl,
+                level=_level,
                 time=_time,
                 line=_line,
-                msg=_msg,
+                message=_message,
                 name=_name,
             )
             + _traceback
@@ -515,10 +515,39 @@ class Logger:
             handler.handle(self, event)
         return event
 
+    def create_log_event(
+        self,
+        *,
+        message: Stringable,
+        level: Levelable,
+        frame_depth: int,
+        traceback: bool,
+    ) -> LogEvent:
+        """
+        Create a log event.
+
+        Args:
+            message (str): The message for the event.
+            level (Levelable): The log level.
+            frame_depth (int): The depth of the frame.
+            traceback (bool): Whether to include the traceback.
+
+        Returns:
+            LogEvent: The newly created log event.
+        """
+        return LogEvent(
+            message=str(message),
+            level=to_level(level, True),
+            time=time.time(),
+            indent=self.indent,
+            frame_depth=frame_depth,
+            traceback=traceback,
+        )
+
     def log(
         self,
-        lvl: Levelable,
-        msg: Stringable,
+        level: Levelable,
+        message: Stringable,
         traceback: bool = False,
         frame_depth: int = 4,
     ) -> Optional[LogEvent]:
@@ -529,8 +558,8 @@ class Logger:
         debug, info, warning, error, critical.
 
         Args:
-            lvl (Levelable): The level of the message.
-            msg (Stringable): The message.
+            level (Levelable): The level of the message.
+            message (Stringable): The message.
             traceback (bool): Whether to include the traceback.
             frame_depth (int): The depth of the frame. If you call this from\
  your code, this (probably) should be 4.
@@ -553,14 +582,12 @@ class Logger:
                 )
                 return None
             # Log with parent
-            return self.higher.log(lvl, msg, traceback, frame_depth + 1)
-        event = LogEvent(
-            msg=str(msg),
-            level=to_level(lvl, True),
-            time=time.time(),
-            indent=self.indent,
+            return self.higher.log(level, message, traceback, frame_depth + 1)
+        event = self.create_log_event(
+            message=message,
+            level=level,
             frame_depth=frame_depth,
-            traceback=bool(traceback),
+            traceback=traceback,
         )
         # Check if it should be logged
         if not self.should_be_logged(event):
@@ -569,84 +596,84 @@ class Logger:
         return self._actually_log(event)
 
     def debug(
-        self, msg: Stringable, traceback: bool = False
+        self, message: Stringable, traceback: bool = False
     ) -> Optional[LogEvent]:
         """
         Log a debug message.
 
         Args:
-            msg (Stringable): The message.
+            message (Stringable): The message.
             traceback (bool, optional): Whether to include the traceback.\
  Defaults to False.
 
         Returns:
             int: The number of characters written.
         """
-        return self.log(Level.debug, msg, traceback, 5)
+        return self.log(Level.debug, message, traceback, 5)
 
     def info(
-        self, msg: Stringable, traceback: bool = False
+        self, message: Stringable, traceback: bool = False
     ) -> Optional[LogEvent]:
         """
         Log an info message.
 
         Args:
-            msg (Stringable): The message.
+            message (Stringable): The message.
             traceback (bool, optional): Whether to include the traceback.\
  Defaults to False.
 
         Returns:
             int: The number of characters written.
         """
-        return self.log(Level.info, msg, traceback, 5)
+        return self.log(Level.info, message, traceback, 5)
 
     def warning(
-        self, msg: Stringable, traceback: bool = False
+        self, message: Stringable, traceback: bool = False
     ) -> Optional[LogEvent]:
         """
         Log a warning message.
 
         Args:
-            msg (Stringable): The message.
+            message (Stringable): The message.
             traceback (bool, optional): Whether to include the traceback.\
  Defaults to False.
 
         Returns:
             int: The number of characters written.
         """
-        return self.log(Level.warning, msg, traceback, 5)
+        return self.log(Level.warning, message, traceback, 5)
 
     def error(
-        self, msg: Stringable, traceback: bool = False
+        self, message: Stringable, traceback: bool = False
     ) -> Optional[LogEvent]:
         """
         Log an error message.
 
         Args:
-            msg (Stringable): The message.
+            message (Stringable): The message.
             traceback (bool, optional): Whether to include the traceback.\
  Defaults to False.
 
         Returns:
             int: The number of characters written.
         """
-        return self.log(Level.error, msg, traceback, 5)
+        return self.log(Level.error, message, traceback, 5)
 
     def critical(
-        self, msg: Stringable, traceback: bool = False
+        self, message: Stringable, traceback: bool = False
     ) -> Optional[LogEvent]:
         """
         Log a critical/fatal message.
 
         Args:
-            msg (Stringable): The message.
+            message (Stringable): The message.
             traceback (bool, optional): Whether to include the traceback.\
  Defaults to False.
 
         Returns:
             int: The number of characters written.
         """
-        return self.log(Level.critical, msg, traceback, 5)
+        return self.log(Level.critical, message, traceback, 5)
 
     def get_child(self, name: str) -> "Logger":
         """
@@ -660,18 +687,18 @@ class Logger:
         # (That's why we have `._inherit`)
         return type(self)(name, self)
 
-    def is_enabled_for(self, lvl: Levelable) -> bool:
+    def is_enabled_for(self, level: Levelable) -> bool:
         """
         Check if the logger is enabled for the given level.
 
         Args:
-            lvl (Levelable): The level to check.
+            level (Levelable): The level to check.
 
         Returns:
             bool: Whether the logger is enabled for the given level.
         """
-        lvl = to_level(lvl, True)
-        return lvl >= self.threshold
+        level = to_level(level, True)
+        return level >= self.threshold
 
     def should_be_logged(self, event: LogEvent) -> bool:
         """

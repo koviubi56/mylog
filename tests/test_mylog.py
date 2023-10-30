@@ -427,14 +427,14 @@ class TestLogger:
 
         # Check if it runs
         for _ in range(10):
-            logger.format_msg(event)
+            logger.format_message(event)
 
         event = mylog.LogEvent(str(random_anything()), lvl[0], 0, 0, 0, True)
 
         with pytest.warns(
             UserWarning, match=r"No traceback available, but traceback=True"
         ):
-            logger.format_msg(event)
+            logger.format_message(event)
 
     @staticmethod
     def test_actually_log() -> None:
@@ -443,7 +443,7 @@ class TestLogger:
         logger.indent = _randint(0, 10)
         stream = Stream()
         handler = mylog.StreamWriterHandler(
-            stream, flush=False, use_colors=False, format_msg=False
+            stream, flush=False, use_colors=False, format_message=False
         )
         logger.handlers = [handler]
         lvl = _random_level()
@@ -458,7 +458,7 @@ class TestLogger:
 
         assert len(logger.list) == 1
         event = logger.list[0]
-        assert event.msg == str(msg)
+        assert event.message == str(msg)
         assert event.level == lvl[1]
         assert time - 1 < event.time < time + 1
         assert event.indent == logger.indent
@@ -485,7 +485,7 @@ class TestLogger:
 
         assert not logger.list
         event = logger.higher.list[-1]
-        assert event.msg == str(msg)
+        assert event.message == str(msg)
         assert event.level == lvl[1]
         assert time - 1 < event.time < time + 1
         assert event.indent == logger.higher.indent
@@ -517,7 +517,7 @@ class TestLogger:
 
         assert len(logger.list) == 1
         event = logger.list[-1]
-        assert event.msg == str(msg)
+        assert event.message == str(msg)
         assert event.level == lvl[1]
         assert time - 1 < event.time < time + 1
         assert event.indent == logger.indent
@@ -547,7 +547,7 @@ class TestLogger:
 
         assert len(logger.list) == 1
         event = logger.list[-1]
-        assert event.msg == str(msg)
+        assert event.message == str(msg)
         assert event.level == lvl
         assert time - 1 < event.time < time + 1
         assert event.indent == logger.indent

@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Added `Logger.should_be_logged(self: Self@Logger, event: LogEvent) -> bool`**
+- **Added `Logger.create_log_event(self: Self@Logger, *, message: Stringable, level: Levelable, frame_depth: int, traceback: bool) -> LogEvent`**
+
+### Changed
+
+- **! Changed `msg` to `message` and `lvl` to `level` everywhere! This includes: message formats, all parameters, `LogEvent` attributes, `StreamWriterHandler` attribute, `Logger.format_message`,**
 
 ## [0.8.0] - 2023-07-31
 
