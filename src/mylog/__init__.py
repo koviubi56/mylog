@@ -54,6 +54,7 @@ with contextlib.suppress(Exception):
 
 UnionType = type(Union[int, str])
 T = TypeVar("T")
+T_event = TypeVar("T_event", bound="LogEvent")
 DEFAULT_FORMAT = "[{name} {level} {time} line: {line}] {indent}{message}"
 # dataclass' kw_only argument was introduced in python 3.10
 # i don't want to make the requirement 3.10 from 3.8, so instead we check
@@ -61,6 +62,22 @@ DEFAULT_FORMAT = "[{name} {level} {time} line: {line}] {indent}{message}"
 # ignore it
 DATACLASS_HAS_KW_ONLY = "kw_only" in dataclasses.dataclass.__kwdefaults__
 DATACLASS_KW_ONLY = {"kw_only": True} if DATACLASS_HAS_KW_ONLY else {}
+
+
+def optional_string_format(__string: str, /, **kwargs: str) -> str:
+    """
+    Same as `str.format` but optional.
+
+    Args:
+        __string (str): The string to format.
+        **kwargs (str): Values.
+
+    Returns:
+        str: The formatted string.
+    """
+    for key, value in kwargs.items():
+        __string = __string.replace("{" + key + "}", value)
+    return __string
 
 
 class Level(IntEnum):
@@ -287,13 +304,13 @@ class Logger:
     """
 
     colors: ClassVar[bool] = True
-    # ↪ Should level_to_str use colors? Should be set manually.
+    # Should level_to_str use colors? Should be set manually.
     compare_using_name: ClassVar[bool] = False
-    # ↪ Compare (__eq__, __ne__) using self.name? If False, use self._id
+    # Compare (__eq__, __ne__) using self.name? If False, use self._id
     attributes_to_inherit: ClassVar[
         AttributesToInherit
     ] = AttributesToInherit()
-    # ↪ What attributes should get inherited in ._inherit()
+    # What attributes should get inherited in ._inherit()
     color_config: ClassVar[Dict[str, Tuple[Any, ...]]] = {
         "DEBUG": ("blue",),
         "INFO": ("cyan",),
@@ -427,6 +444,8 @@ class Logger:
         Returns:
             str: The colorized string.
         """
+        if not cls.colors:
+            return rv
         if rv in cls.color_config:
             return termcolor.colored(
                 rv.ljust(cls.level_name_width), *cls.color_config[rv]
@@ -464,7 +483,7 @@ class Logger:
         Returns:
             str: The formatted message.
         """
-        _indent = "  " * self.indent
+        _indent = "  " * event.indent
         _level = self.level_to_str(event.level)
         _time = str(
             datetime.datetime.fromtimestamp(event.time, datetime.timezone.utc)
@@ -482,7 +501,8 @@ class Logger:
             ("\n" + tracebacklib.format_exc()) if event.traceback else ""
         )
         return (
-            self.format.format(
+            optional_string_format(
+                self.format,
                 indent=_indent,
                 level=_level,
                 time=_time,
@@ -496,8 +516,8 @@ class Logger:
 
     def _actually_log(
         self,
-        event: LogEvent,
-    ) -> LogEvent:
+        event: T_event,
+    ) -> T_event:
         """
         Actually log the message. ONLY USE THIS INTERNALLY!
 
