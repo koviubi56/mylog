@@ -28,6 +28,7 @@ documentation, submitting bug reports and feature requests or writing code.
 - Make sure to put an X to the square brackets at the end of the issue, if you
   agree to the contributing guidelines, the code of conduct, and the DCO.
   **If you don't put an X to all of them, your issue will be closed!**
+- Please follow our [code style](https://github.com/koviubi56/koviubi56/blob/main/code_style.md).
 
 ## How to file a bug report?
 
