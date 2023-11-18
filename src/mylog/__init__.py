@@ -167,7 +167,7 @@ class SetAttr:
 
     def __enter__(self) -> "SetAttr":
         """
-        Enter the context manager.
+        Set the attribute.
 
         Returns:
             SetAttr: The SetAttr instance.
@@ -178,11 +178,18 @@ class SetAttr:
 
     def __exit__(
         self,
-        typ: Optional[Type[BaseException]],
+        type_: Optional[Type[BaseException]],
         value: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
-        """Exit the context manager."""
+        """
+        Restore the attribute to its original value.
+
+        Args:
+            type_ (Optional[Type[BaseException]]): The type of the exception.
+            value (Optional[BaseException]): The exception object.
+            traceback (Optional[TracebackType]): The traceback.
+        """
         setattr(self.obj, self.name, self.old_value)
 
 
@@ -751,7 +758,7 @@ class IndentLogger:
 
     def __exit__(
         self,
-        typ: Optional[Type[BaseException]],
+        type_: Optional[Type[BaseException]],
         value: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
@@ -759,7 +766,7 @@ class IndentLogger:
         Unindent the logger by one.
 
         Args:
-            typ (Type[BaseException]): The exception type.
+            type_ (Type[BaseException]): The exception type.
             value (BaseException): The exception.
             traceback (TracebackType): The traceback.
         """
@@ -794,7 +801,7 @@ class ChangeThreshold:
 
     def __exit__(
         self,
-        typ: Optional[Type[BaseException]],
+        type_: Optional[Type[BaseException]],
         value: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
@@ -802,7 +809,7 @@ class ChangeThreshold:
         Restore the threshold.
 
         Args:
-            typ (Optional[Type[BaseException]]): The exception type.
+            type_ (Optional[Type[BaseException]]): The exception type.
             value (Optional[BaseException]): The exception.
             traceback (Optional[TracebackType]): The traceback.
         """
