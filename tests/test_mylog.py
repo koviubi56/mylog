@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
 import sys
-import time as timelib
 from unittest.mock import Mock
 
 import mylog
