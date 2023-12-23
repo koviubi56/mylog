@@ -289,20 +289,18 @@ class TestLogger:
 
     @staticmethod
     def test_create_log_event() -> None:
-        assert mylog.root.create_log_event(
+        event = mylog.root.create_log_event(
             message="foo, bar?",
             level=10,
-            indentation=2,
-            line_number=63,
-            exception=None,
-        ) == mylog.LogEvent(
-            message="foo, bar?",
-            level=10,
-            time=timelib.time(),
             indentation=2,
             line_number=63,
             exception=None,
         )
+        assert event.message == "foo, bar?"
+        assert event.level == 10
+        assert event.indentation == 2
+        assert event.line_number == 63
+        assert event.exception is None
 
     @staticmethod
     def test_add_to_list() -> None:
