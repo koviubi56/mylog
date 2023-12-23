@@ -6,29 +6,21 @@ First off, thank you for considering contributing.
 
 ## Why do these guidelines exists?
 
-Following these guidelines helps to communicate that you respect the time of
-the developers managing and developing this open source project. In return,
-they should reciprocate that respect in addressing your issue, assessing
-changes, and helping you finalize your pull requests.
+Following these guidelines helps to communicate that you respect the time of the developers managing and developing this open source project. In return, they should reciprocate that respect in addressing your issue, assessing changes, and helping you finalize your pull requests.
 
 ## What to do
 
-mylog is an open source project and we love to receive contributions from our
-community! There are many ways to contribute, from improving the
-documentation, submitting bug reports and feature requests or writing code.
+mylog is an open source project and we love to receive contributions from our community! There are many ways to contribute, from improving the documentation, submitting bug reports and feature requests or writing code.
 
 ## Rules
 
-- Fill issue templates.
+- Fill issue/pull request templates.
 - If you are making a big pull request, create an issue first.
-- Read the [code of conduct](CODE_OF_CONDUCT.md).
-- Run tests.
+- Run tests. _[Need more help?](#run-tests)_
 - Search open **and closed** issues **and** pull requests.
 - Please, **don't** open an issue for questions. Ask it in the discussions tab!
-- Make sure to put an X to the square brackets at the end of the issue, if you
-  agree to the contributing guidelines, the code of conduct, and the DCO.
-  **If you don't put an X to all of them, your issue will be closed!**
-- Please follow our [code style](https://github.com/koviubi56/koviubi56/blob/main/code_style.md).
+- Make sure to put an X in the square brackets at the end of your pull requests and issues.
+- Don't forget to add an entry to the changelog. Unless you know what you are doing, put it in the Unreleased section. For more information, see the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## How to file a bug report?
 
@@ -38,50 +30,48 @@ Click [here](https://github.com/koviubi56/mylog/issues/new?assignees=&labels=bug
 
 Click [here](https://github.com/koviubi56/mylog/issues/new?assignees=&labels=enhancement&template=feature_request.yml) and fill out the form.
 
+## How to set up your environment and run tests?
+
+### Set up environment
+
+1. Clone the GitHub repository using `git clone`. _[Need more help?](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)_
+1. Create a virtual environment using `venv .venv`. _[Need more help?](https://packaging.python.org/en/latest/tutorials/installing-packages/#creating-virtual-environments)_
+1. Activate the virtual environment: _[Need more help?](https://packaging.python.org/en/latest/tutorials/installing-packages/#tab-set--5-input--1)_
+    - **On PowerShell**: `.\\.venv\\Scripts\\Activate.ps1`
+    - **On cmd.exe**: `.\\.venv\\Scripts\\activate.bat`
+    - **On Bash**: `source ./.venv/Scripts/activate`
+
+### Install
+
+Run `pip install -e .`. _[Need more help?](https://packaging.python.org/en/latest/tutorials/installing-packages/#installing-from-a-local-src-tree)_
+
+### Run tests
+
+1. Install nox with `pip install nox` _[Need more help?](https://nox.thea.codes/en/stable/index.html#welcome-to-nox)_
+1. Run `nox`. _[Need more help?](https://nox.thea.codes/en/stable/index.html#welcome-to-nox)_
+
 ## Pull requests
 
-- **Read, understand, and agree to the DCO. [More info](#dco)**
-- Note the [Code of Conduct](CODE_OF_CONDUCT.md).
+- **Read the [DCO](#dco).**
 - Create an issue first.
 - Wait until a maintainer accepts it.
 - Create a fork.
-- Create a **draft** pull request
 - Make the changes
-- Make the draft pull request ready to review (button)
+- Create a pull request
 - Request review
 - Wait...
 
 ## Security vulnerabilities
 
-In order to determine whether you are dealing with a security issue, ask
-yourself these two questions:
-
-- Can I access something that's not mine, or something I shouldn't have access
-  to?
-- Can I disable something for other people?
-
-If the answer to either of those two questions are "yes", then you're probably
-dealing with a security issue. _Note that even if you answer "no" to both
-questions, you may still be dealing with a security issue._
-
 How to report them can be found in the [SECURITY.md](SECURITY.md) file.
 
 ## DCO
 
-- _"our project"_ and _"this project"_ refer to mylog.
-- _"contribution"_ refers to any contribution, committing, and/or pushing to our project.
-- _"contributor"_, _"you"_, _"I"_, and _"me"_ refer to the person who made the contribution.
-- _"DCO"_ refers to the Developer Certificate of Origin.
+By contributing to our project you fully agree to the whole DCO.
 
-By contributing, committing, and/or pushing to our project you MUST fully understand and fully agree to the whole DCO.
+By [signing off](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt--s) your git commits you explicitly agree with the DCO.
 
-Contributing to our project in any way means that you fully understand and fully agree to the whole DCO.
-
-If you do not fully understand and fully agree to the DCO, you may not and MUST NOT contribute to our project.
-
-Contributions and pull requests may be rejected if you do not fully understand and fully agree to the whole DCO.
-
-A copy of the DCO can be read at <https://developercertificate.org/> or here:
+A copy of the DCO can be found at <https://developercertificate.org/> or here:
 
 > Developer Certificate of Origin
 > Version 1.1

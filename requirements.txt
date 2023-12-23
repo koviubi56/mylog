@@ -1,1 +1,2 @@
 termcolor>=0.2
+typing_extensions

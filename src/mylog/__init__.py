@@ -16,57 +16,63 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
+__author__ = "Koviubi56"
+__email__ = "koviubi56@duck.com"
+__license__ = "GPL-3.0-or-later"
+__copyright__ = "Copyright (C) 2022-2023 Koviubi56"
+__description__ = "My logging library."
+__url__ = "https://github.com/koviubi56/mylog"
 
 import abc
 import contextlib
 import dataclasses
 import datetime
+import enum
 import sys
-import time
+import time as timelib
 import traceback as tracebacklib
-import uuid
-import warnings
-from enum import IntEnum
-from types import TracebackType
-from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Protocol,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    overload,
-    runtime_checkable,
-)
+from collections.abc import Generator, Iterable, Mapping
+from typing import Protocol
 
 import termcolor
+from typing_extensions import Self
 
-with contextlib.suppress(Exception):
-    import colorama
+DEFAULT_FORMAT = "[{name} {level} {time} line: {line}] {indentation}{message}"
+DEFAULT_COLOR_CONFIG = {
+    "DEBUG": ("blue",),
+    "INFO": ("cyan",),
+    "WARNING": ("yellow",),
+    "ERROR": ("red",),
+    "CRITICAL": ("red", "on_yellow", ["bold", "underline", "blink"]),
+}
 
-    colorama.init()
 
-UnionType = type(Union[int, str])
-T = TypeVar("T")
-T_event = TypeVar("T_event", bound="LogEvent")
-DEFAULT_FORMAT = "[{name} {level} {time} line: {line}] {indent}{message}"
-# dataclass' kw_only argument was introduced in python 3.10
-# i don't want to make the requirement 3.10 from 3.8, so instead we check
-# whether or not kw_only is a thing. if it is we'll use it, if it's not, we'll
-# ignore it
-DATACLASS_HAS_KW_ONLY = "kw_only" in dataclasses.dataclass.__kwdefaults__
-DATACLASS_KW_ONLY = {"kw_only": True} if DATACLASS_HAS_KW_ONLY else {}
+class StreamProtocol(Protocol):
+    """Protocol for streams."""
+
+    def write(self, __s: str, /) -> int:  # pragma: no cover
+        """
+        Writes `__s` to the stream.
+
+        Args:
+            __s (str): The string to write.
+
+        Returns:
+            int: The number of bytes written.
+        """
+        return 0
+
+    def flush(self) -> None:
+        """Flushes the streams."""
 
 
 def optional_string_format(__string: str, /, **kwargs: str) -> str:
     """
-    Same as `str.format` but optional.
+    Same as `str.format()` but optional.
+
+    >>> optional_string_format("{hello} {world}", hello="hi", bye="goodbye")
+    'hi {world}'
 
     Args:
         __string (str): The string to format.
@@ -80,153 +86,104 @@ def optional_string_format(__string: str, /, **kwargs: str) -> str:
     return __string
 
 
-class Level(IntEnum):
+class Level(enum.IntEnum):
     """Level for the log message."""
 
-    debug = 10
-    info = 20
-    warning = 30
-    error = 40
-    critical = 50
+    DEBUG = 10
+    INFO = 20
+    WARNING = 30
+    ERROR = 40
+    CRITICAL = 50
 
-    warn = warning
-    fatal = critical
+    @classmethod
+    def new(cls, level: object) -> Self:
+        """
+        Create a new level from `level`.
+
+        >>> Level.new("DEBUG")
+        <Level.DEBUG: 10>
+        >>> Level.new(40)
+        <Level.ERROR: 40>
+        >>> Level.new("50")
+        <Level.CRITICAL: 50>
+        >>> Level.new("foo")
+        Traceback (most recent call last):
+        ValueError: invalid level: 'foo'
+
+        Args:
+            level (object): The object to create the level from.
+
+        Raises:
+            ValueError: If the object cannot be converted into a level.
+
+        Returns:
+            Self: The level created from `level`.
+        """
+        with contextlib.suppress(ValueError):
+            return cls(level)
+        with contextlib.suppress(ValueError):
+            return cls(int(level))
+        with contextlib.suppress(AttributeError, ValueError):
+            return getattr(Level, str(level).upper())
+        raise ValueError(f"invalid level: {level!r}")
+
+    @classmethod
+    def new_or_int(cls, level: object) -> Self | int:
+        """
+        Create a new level from `level` or return an int.
+
+        >>> Level.new_or_int("WARNING")
+        <Level.WARNING: 30>
+        >>> Level.new_or_int("25")
+        25
+        >>> Level.new_or_int("foo")
+        Traceback (most recent call last):
+        ValueError: invalid level: 'foo'
+
+        Args:
+            level (object): The object to create the level or int from.
+
+        Raises:
+            ValueError: If the object cannot be converted into a level or int.
+
+        Returns:
+            Self | int: The level or int created from `level`.
+        """
+        with contextlib.suppress(ValueError):
+            return cls.new(level)
+        with contextlib.suppress(ValueError):
+            return int(level)
+        raise ValueError(f"invalid level: {level!r}")
 
 
-DEFAULT_THRESHOLD = Level.warning
+DEFAULT_THRESHOLD = Level.WARNING
 
 
-@runtime_checkable
-class Stringable(Protocol):
-    """Protocol for stringable objects."""
-
-    def __str__(self) -> str:  # pragma: no cover
-        """Return the string representation of the object."""
-        return ""
-
-
-Levelable = Union[Level, Stringable, int]
-
-
-@overload
-def to_level(
-    level: Levelable, int_ok: Literal[True] = False
-) -> Union[Level, int]:  # pragma: no cover
-    ...
-
-
-@overload
-def to_level(
-    level: Levelable, int_ok: Literal[False] = False
-) -> Level:  # pragma: no cover
-    ...
-
-
-def to_level(level: Levelable, int_ok: bool = False) -> Union[Level, int]:
+@dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
+class LogEvent:
     """
-    Convert a Levelable to a Level (or int).
+    A log event.
 
     Args:
-        level (Levelable): The levelable object to convert.
-        int_ok (bool, optional): If there's no level, can this function return\
- an int? Defaults to False.
-
-    Raises:
-        ValueError: If there's no level, and int_ok is False.
-
-    Returns:
-        Union[Level, int]: The level or int.
+        message (str): The message.
+        level (int): The level.
+        time (float): The time in UNIX seconds (see `time.time()`).
+        indentation (int): The indentation before the message.
+        line_number (int): The line number where this event was created.
+        exception (BaseException | None): An exception that is related to this
+            log event or None.
     """
-    try:
-        return Level(level)
-    except ValueError:
-        try:
-            return Level(int(level))
-        except ValueError:
-            try:
-                return getattr(Level, str(level))
-            except (AttributeError, ValueError):
-                with contextlib.suppress(ValueError):
-                    if int_ok:
-                        return int(level)
-                raise ValueError(
-                    f"Invalid level: {level!r}. Must be a Level, int, or str."
-                ) from None
-
-
-NoneType = type(None)
-
-
-@dataclasses.dataclass(order=True)
-class SetAttr:
-    """A context manager for setting and then resetting an attribute."""
-
-    obj: object
-    name: str
-    new_value: Any
-
-    def __enter__(self) -> "SetAttr":
-        """
-        Set the attribute.
-
-        Returns:
-            SetAttr: The SetAttr instance.
-        """
-        self.old_value = getattr(self.obj, self.name)
-        setattr(self.obj, self.name, self.new_value)
-        return self
-
-    def __exit__(
-        self,
-        type_: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> None:
-        """
-        Restore the attribute to its original value.
-
-        Args:
-            type_ (Optional[Type[BaseException]]): The type of the exception.
-            value (Optional[BaseException]): The exception object.
-            traceback (Optional[TracebackType]): The traceback.
-        """
-        setattr(self.obj, self.name, self.old_value)
-
-
-@dataclasses.dataclass(order=True, frozen=True)
-class LogEvent:
-    """A log event."""
 
     message: str
-    level: Levelable
-    time: float  # ! UNIX seconds (see time.time())
-    indent: int
-    frame_depth: int
-    traceback: bool
-
-
-@runtime_checkable
-class StreamProtocol(Protocol):
-    """Protocol for streams."""
-
-    def write(self, __s: str, /) -> int:  # pragma: no cover
-        """
-        Writes `__s` to the stream.
-
-        Args:
-            __s (str): The string to write.
-
-        Returns:
-            int: `len(__s)`
-        """
-        return 0
-
-    def flush(self) -> None:
-        """Flushes the streams."""
+    level: int
+    time: float
+    indentation: int
+    line_number: int
+    exception: BaseException | None
 
 
 class Handler(abc.ABC):
-    """A handler ABC class."""
+    """An ABC class for handlers."""
 
     @abc.abstractmethod
     def handle(self, logger: "Logger", event: LogEvent) -> None:
@@ -239,7 +196,7 @@ class Handler(abc.ABC):
         """
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True, slots=True)
 class NoHandler(Handler):
     """A handler that does nothing."""
 
@@ -253,14 +210,109 @@ class NoHandler(Handler):
         """
 
 
-@dataclasses.dataclass(order=True, frozen=True)
+@dataclasses.dataclass(slots=True)
 class StreamWriterHandler(Handler):
-    """A handler to write to a stream."""
+    """
+    A handler to write to a stream.
+
+    Args:
+        stream (StreamProtocol): The stream to write to.
+        flush (bool, optional): Whether to flush the stream after writing to
+            it. Defaults to True.
+        use_colors (bool, optional): Whether to use colors. Defaults to True.
+        should_format_message (bool, optional): Whether to write the formatted
+            message or just write the log event's message. Defaults to True.
+        level_name_width (int, optional): The width to ljust the level.
+            Defaults to 8.
+        color_config (dict[str, tuple[object, ...]], optional): A dictionary
+            where the keys are the level strings, and the values are the `args`
+            to `termcolor.colored(level, *args)`. Defaults to
+            DEFAULT_COLOR_CONFIG.
+    """
 
     stream: StreamProtocol
     flush: bool = True
+    format_: str = DEFAULT_FORMAT
     use_colors: bool = True
-    format_message: bool = True
+    should_format_message: bool = True
+    level_name_width: int = 8
+    color_config: Mapping[str, tuple[object, ...]] = dataclasses.field(
+        default_factory=lambda: DEFAULT_COLOR_CONFIG.copy()
+    )
+
+    def color(self, level: str) -> str:
+        """
+        Colorize the level.
+
+        Args:
+            level (str): The string to colorize.
+
+        Returns:
+            str: The colorized string.
+        """
+        if not self.use_colors:
+            return level
+        if level in self.color_config:
+            return termcolor.colored(level, *self.color_config[level])
+        return level
+
+    def level_to_str(self, level: int) -> str:
+        """
+        Convert a level to a string.
+
+        Args:
+            level (int): The level.
+
+        Returns:
+            str: The string.
+        """
+        try:
+            string = Level.new(level).name.upper()
+        except (ValueError, AttributeError):
+            string = str(level)
+
+        if self.use_colors:
+            string = self.color(string)
+
+        return string.ljust(self.level_name_width)
+
+    def format_message(self, logger: "Logger", event: LogEvent) -> str:
+        """
+        Format the message.
+
+        Args:
+            logger (Logger): The logger that created the event.
+            event (LogEvent): The event.
+
+        Returns:
+            str: The formatted message.
+        """
+        indentation = "  " * event.indentation
+        level = self.level_to_str(event.level)
+        time = str(
+            datetime.datetime.fromtimestamp(event.time, datetime.timezone.utc)
+        )
+        line = str(event.line_number).zfill(5)
+        message = str(event.message)
+        name = str(logger.name)
+        traceback = (
+            ("\n" + "\n".join(tracebacklib.format_exception(event.exception)))
+            if event.exception
+            else ""
+        )
+        return (
+            optional_string_format(
+                self.format_,
+                indentation=indentation,
+                level=level,
+                time=time,
+                line=line,
+                message=message,
+                name=name,
+            )
+            + traceback
+            + "\n"
+        )
 
     def handle(self, logger: "Logger", event: LogEvent) -> None:
         """
@@ -270,552 +322,441 @@ class StreamWriterHandler(Handler):
             logger (Logger): The logger that created the event.
             event (LogEvent): The event.
         """
-        with SetAttr(logger, "colors", self.use_colors):
-            message = (
-                (logger.format_message(event))
-                if (self.format_message)
-                else (event.message)
-            )
+        message = (
+            self.format_message(logger, event)
+            if self.should_format_message
+            else event.message
+        )
         self.stream.write(message)
         if self.flush:
             self.stream.flush()
 
 
-@dataclasses.dataclass(order=True, frozen=True, **DATACLASS_KW_ONLY)
+@dataclasses.dataclass(slots=True, kw_only=True)
 class AttributesToInherit:
     """
     What attributes to inherit.
 
-    Note: Changes made to the parent logger won't be made to the children.
+    Note: Changes made to the parent logger won't be made to the children
+    automatically. They will only be made if `.inherit()` is called and
+    inheriting that attribute is turned on.
     """
 
+    name: bool = False
     propagate: bool = False
-    _id: bool = False
-    list: bool = False  # noqa: A003
-    indent: bool = False
+    list_: bool = False
+    indentation: bool = False
     enabled: bool = False
-    ctxmgr: bool = False
-    # IndentLogger (used by ctxmgr) takes the logger as an argument.
-    # If it's inherited the PARENT LOGGER will be indented
-    format: bool = True  # noqa: A003
     threshold: bool = True
     handlers: bool = True
 
 
+@dataclasses.dataclass
 class Logger:
     """
-    THE logger class.
+    The logger class.
 
-    You shouldn't really call `__init__`; use the root logger, or the root
-    logger's `get_child`.
+    Args:
+        (for the args not mentioned, see `.new()`)
+        id_ (str): A unique ID for this logger instance.
+        list_ (list[LogEvent]): A list of log events handled by this logger.
+        handlers (Iterable[Handler]): An iterable of the handlers to use.
     """
 
-    colors: ClassVar[bool] = True
-    # Should level_to_str use colors? Should be set manually.
-    compare_using_name: ClassVar[bool] = False
-    # Compare (__eq__, __ne__) using self.name? If False, use self._id
-    attributes_to_inherit: ClassVar[
-        AttributesToInherit
-    ] = AttributesToInherit()
-    # What attributes should get inherited in ._inherit()
-    color_config: ClassVar[Dict[str, Tuple[Any, ...]]] = {
-        "DEBUG": ("blue",),
-        "INFO": ("cyan",),
-        "WARNING": ("yellow",),
-        "ERROR": ("red",),
-        "CRITICAL": ("red", "on_yellow", ["bold", "underline", "blink"]),
-    }
-    level_name_width: ClassVar[int] = 8
+    name: str
+    id_: str
+    parent: "Logger | None"
+    propagate: bool
+    list_: list[LogEvent]
+    indentation: int
+    enabled: bool
+    threshold: int
+    handlers: Iterable[Handler]
 
     @classmethod
-    def _thing_to_compare(cls, obj: "Logger") -> str:
-        return obj.name if cls.compare_using_name else str(obj._id)
-
-    def __eq__(self, __o: object) -> bool:
-        if isinstance(
-            __o,
-            Logger,  # Hardcoded, because class can be subclassed
-        ):
-            return self._thing_to_compare(self) == self._thing_to_compare(__o)
-        return NotImplemented
-
-    def __ne__(self, __o: object) -> bool:
-        if isinstance(
-            __o,
-            Logger,  # Hardcoded, because class can be subclassed
-        ):
-            return self._thing_to_compare(self) != self._thing_to_compare(__o)
-
-        return NotImplemented
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"<{self.__class__.__qualname__} {self.name}>"
-
-    def _inherit(self) -> None:  # noqa: C901, PLR0912  # pragma: no cover
-        if self.higher is None:
-            raise ValueError("Cannot inherit if higher is None.")
-
-        if self.attributes_to_inherit.propagate:
-            self.propagate = self.higher.propagate
-        else:
-            self.propagate = False
-        if self.attributes_to_inherit._id:
-            self._id = self.higher._id
-        else:
-            self._id = uuid.uuid4()
-        if self.attributes_to_inherit.list:
-            self.list = self.higher.list
-        else:
-            self.list: List[LogEvent] = []
-        if self.attributes_to_inherit.indent:
-            self.indent = self.higher.indent
-        else:
-            self.indent = 0
-        if self.attributes_to_inherit.enabled:
-            self.enabled = self.higher.enabled
-        else:
-            self.enabled = True
-        if self.attributes_to_inherit.ctxmgr:
-            self.ctxmgr = self.higher.ctxmgr
-        else:
-            self.ctxmgr = IndentLogger(self)
-        if self.attributes_to_inherit.format:
-            self.format = self.higher.format
-        else:
-            self.format = DEFAULT_FORMAT
-        if self.attributes_to_inherit.threshold:
-            self.threshold: Union[Level, int] = self.higher.threshold
-        else:
-            self.threshold = DEFAULT_THRESHOLD
-        if self.attributes_to_inherit.handlers:
-            self.handlers = self.higher.handlers
-        else:
-            self.handlers = self.get_default_handlers()
-
-    @staticmethod
-    def get_default_handlers() -> List[Handler]:
+    def get_default_handlers(cls) -> list[Handler]:
         """
         Get the default handlers.
-
-        This is called once in `__init__` and `_inherit`.
 
         Returns:
             List[Handler]: The default handlers.
         """
         return [StreamWriterHandler(sys.stderr)]
 
-    def __init__(self, name: str, higher: Optional["Logger"] = None) -> None:
+    @classmethod
+    def _create_root(cls) -> Self:
+        # Should only be called exactly once by us!
+        return cls.new(name="root", parent=None)
+
+    @classmethod
+    def new(  # noqa: PLR0913
+        cls,
+        *,
+        name: str,
+        parent: "Logger | None",
+        handlers: Iterable[Handler] | None = None,
+        propagate: bool = False,
+        indentation: int = 0,
+        enabled: bool = True,
+        threshold: int = DEFAULT_THRESHOLD,
+    ) -> Self:
         """
-        Initialize the logger.
+        Create a new logger instance.
+
+        >>> Logger.new(name="foo", parent=root)
+        <Logger foo>
 
         Args:
-            name (str): The name of the logger.
-            higher (Optional[Logger], optional): The higher logger. If it's\
- None or omitted then the logger will be the root. Defaults to None.
+            name (str): The name of the logger. Multiple loggers may have the
+                same name.
+            parent (Logger | None): The parent logger.
+            handlers (Iterable[Handler] | None, optional): The handlers. If
+                None, it will use `cls.get_default_handlers()`. Defaults to
+                None.
+            propagate (bool, optional): Whether to propagate log events to the
+                parent. Defaults to False.
+            indentation (int, optional): The current indentation. Defaults to
+                0.
+            enabled (bool, optional): Whether the logger is enabled. Defaults
+                to True.
+            threshold (int, optional): The minimum level that a log event has
+                to reach in order to be handled. Defaults to DEFAULT_THRESHOLD.
+
+        Returns:
+            Self: Always a new logger instance.
+        """
+        return cls(
+            name=name,
+            id_=str(timelib.time_ns()),
+            parent=parent,
+            propagate=propagate,
+            list_=[],
+            indentation=indentation,
+            enabled=enabled,
+            threshold=threshold,
+            handlers=handlers
+            if handlers is not None
+            else cls.get_default_handlers(),
+        )
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Logger):
+            return self.id_ == self.id_
+        return NotImplemented
+
+    def __ne__(self, other: object) -> bool:
+        if isinstance(other, Logger):
+            return self.id_ != self.id_
+        return NotImplemented
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__qualname__} {self.name}>"
+
+    def inherit(
+        self, attributes_to_inherit: AttributesToInherit | None = None
+    ) -> None:
+        """
+        Inherit some attributes from the parent logger (`self.parent`).
+
+        Args:
+            attributes_to_inherit (AttributesToInherit | None, optional): What
+                attributes to inherit from the parent. If None, it uses
+                AttributesToInherit's defaults. Defaults to None.
 
         Raises:
-            ValueError: If the higher logger is None, but root is already\
- created (internally)
+            TypeError: If `self.parent` is None
         """
-        if (higher is None) and (not _allow_root):
-            raise ValueError(
-                "Cannot create a new logger: Root logger already"
-                " exists. Use that, or make a child logger from the root"
-                " one."
-            )
-        self.name = name
-        self.higher = higher
-        if higher is not None:
-            # Made a separate function so it can be overwritten
-            self._inherit()
-            return
-        self.propagate = False  # ! Root logger should not propagate!
-        self.list: List[LogEvent] = []
-        self.indent = 0  # Should be set manually
-        self.format: str = DEFAULT_FORMAT
-        self.threshold: Union[Level, int] = DEFAULT_THRESHOLD
-        self.enabled: bool = True
-        self._id = uuid.uuid4()  # Only used for ==, !=
-        self.handlers: List[Handler] = self.get_default_handlers()
+        if not self.parent:
+            raise TypeError("cannot inherit if parent is None")
 
-        self.ctxmgr = IndentLogger(self)
+        attributes_to_inherit = attributes_to_inherit or AttributesToInherit()
+        if attributes_to_inherit.name:
+            self.name = self.parent.name
+        if attributes_to_inherit.propagate:
+            self.propagate = self.parent.propagate
+        if attributes_to_inherit.list_:
+            self.list_ = self.parent.list_
+        if attributes_to_inherit.indentation:
+            self.indentation = self.parent.indentation
+        if attributes_to_inherit.enabled:
+            self.enabled = self.parent.enabled
+        if attributes_to_inherit.threshold:
+            self.threshold = self.parent.threshold
+        if attributes_to_inherit.handlers:
+            self.handlers = self.parent.handlers
 
-    @classmethod
-    def color(cls, rv: str) -> str:
-        """
-        Colorize the string. This function is only recommended internally.
-
-        Args:
-            rv (str): The string to colorize.
-
-        Returns:
-            str: The colorized string.
-        """
-        if not cls.colors:
-            return rv
-        if rv in cls.color_config:
-            return termcolor.colored(
-                rv.ljust(cls.level_name_width), *cls.color_config[rv]
-            )
-        return rv
-
-    @classmethod
-    def level_to_str(cls, level: Levelable) -> str:
-        """
-        Convert a level to a string.
-
-        Args:
-            level (Levelable): The level.
-
-        Returns:
-            str: The string.
-        """
-        try:
-            rv = to_level(level, False).name.upper()
-        except (ValueError, AttributeError):
-            rv = str(level).ljust(cls.level_name_width)
-
-        if cls.colors:
-            rv = cls.color(rv)
-
-        return rv
-
-    def format_message(self, event: LogEvent) -> str:
-        """
-        Format the message.
-
-        Args:
-            event (LogEvent): The event.
-
-        Returns:
-            str: The formatted message.
-        """
-        _indent = "  " * event.indent
-        _level = self.level_to_str(event.level)
-        _time = str(
-            datetime.datetime.fromtimestamp(event.time, datetime.timezone.utc)
-        )
-        _line = str(sys._getframe(event.frame_depth).f_lineno).zfill(5)
-        _message = str(event.message)
-        _name = str(self.name)
-        if (event.traceback) and (sys.exc_info() == (None, None, None)):
-            warnings.warn(
-                "No traceback available, but traceback=True",
-                UserWarning,
-                stacklevel=event.frame_depth - 1,
-            )
-        _traceback = (
-            ("\n" + tracebacklib.format_exc()) if event.traceback else ""
-        )
-        return (
-            optional_string_format(
-                self.format,
-                indent=_indent,
-                level=_level,
-                time=_time,
-                line=_line,
-                message=_message,
-                name=_name,
-            )
-            + _traceback
-            + "\n"
-        )
-
-    def _actually_log(
+    def create_child(
         self,
-        event: T_event,
-    ) -> T_event:
+        name: str,
+        attributes_to_inherit: AttributesToInherit | None = None,
+    ) -> Self:
         """
-        Actually log the message. ONLY USE THIS INTERNALLY!
+        Create child and inherit.
 
-        ! THIS DOES *NOT* CHECK IF IT SHOULD BE LOGGED! THIS IS *NOT* IN THE
-        ! PUBLIC API, AND IT MUST NOT BE CALLED EXCEPT INTERNALLY!
+        >>> foo = root.create_child("foo", AttributesToInherit())
+        >>> foo.name
+        'foo'
+        >>> foo.threshold == root.threshold
+        True
 
         Args:
-            event (LogEvent): The event to log.
+            name (str): The name of the child logger.
+            attributes_to_inherit (AttributesToInherit | None, optional): What
+                attributes to inherit from the parent (`self`). If None, it
+                uses AttributesToInherit's defaults. Defaults to None.
 
         Returns:
-            LogEvent: The log event.
+            Self: The new child logger instance.
         """
-        self.list.append(event)
-        for handler in self.handlers:
-            handler.handle(self, event)
-        return event
+        child = self.new(name=name, parent=self)
+        child.inherit(attributes_to_inherit or AttributesToInherit())
+        return child
 
-    def create_log_event(
+    def create_log_event(  # noqa: PLR0913
         self,
-        *,
-        message: Stringable,
-        level: Levelable,
-        frame_depth: int,
-        traceback: bool,
+        message: str,
+        level: int,
+        indentation: int,
+        line_number: int,
+        exception: BaseException | None,
     ) -> LogEvent:
         """
         Create a log event.
 
         Args:
-            message (str): The message for the event.
-            level (Levelable): The log level.
-            frame_depth (int): The depth of the frame.
-            traceback (bool): Whether to include the traceback.
+            message (str): The message.
+            level (int): The level.
+            indentation (int): The indentation before the message.
+            line_number (int): The line number where the event was created.
+            exception (BaseException | None): An exception that is related to
+                this log event or None.
 
         Returns:
-            LogEvent: The newly created log event.
+            LogEvent: The new log event.
         """
         return LogEvent(
-            message=str(message),
-            level=to_level(level, True),
-            time=time.time(),
-            indent=self.indent,
-            frame_depth=frame_depth,
-            traceback=traceback,
-        )
-
-    def log(
-        self,
-        level: Levelable,
-        message: Stringable,
-        traceback: bool = False,
-        frame_depth: int = 4,
-    ) -> Optional[LogEvent]:
-        """
-        Log the message. Checks if the logger is enabled, propagate, and stuff.
-
-        This IS in the public api, but (unless you need it) use the methods
-        debug, info, warning, error, critical.
-
-        Args:
-            level (Levelable): The level of the message.
-            message (Stringable): The message.
-            traceback (bool): Whether to include the traceback.
-            frame_depth (int): The depth of the frame. If you call this from\
- your code, this (probably) should be 4.
-
-        Returns:
-            Optional[LogEvent]: The log event if created.
-        """
-        # Check if disabled
-        if not self.enabled:
-            return None
-        # Check if we should log it
-        if self.propagate:
-            # Check if we are root
-            if self.higher is None:
-                warnings.warn(
-                    "Root logger should not propagate! Set enabled to"
-                    " False if you want to disable it.",
-                    UserWarning,
-                    stacklevel=frame_depth - 1,
-                )
-                return None
-            # Log with parent
-            return self.higher.log(level, message, traceback, frame_depth + 1)
-        event = self.create_log_event(
             message=message,
             level=level,
-            frame_depth=frame_depth,
-            traceback=traceback,
+            time=timelib.time(),
+            indentation=indentation,
+            line_number=line_number,
+            exception=exception,
         )
-        # Check if it should be logged
-        if not self.should_be_logged(event):
-            return None
-        # Log
-        return self._actually_log(event)
 
-    def debug(
-        self, message: Stringable, traceback: bool = False
-    ) -> Optional[LogEvent]:
+    def _add_to_list(self, event: LogEvent) -> None:
+        # Add the event to the list `self.list_`
+        self.list_.append(event)
+
+    def _handle(self, event: LogEvent, handler: Handler) -> None:
+        # Handle `event` with `handler`
+        return handler.handle(self, event)
+
+    def _call_handlers(self, event: LogEvent) -> None:
+        # Call handlers for `event`
+        for handler in self.handlers:
+            self._handle(event, handler)
+
+    def _log(self, event: LogEvent) -> None:
+        # Actually log `event` using *this* logger
+        self._add_to_list(event)
+        self._call_handlers(event)
+
+    def is_disabled(self, event: LogEvent) -> bool:  # noqa: ARG002
         """
-        Log a debug message.
+        Returns whether this logger is disabled (for this event).
 
         Args:
-            message (Stringable): The message.
-            traceback (bool, optional): Whether to include the traceback.\
- Defaults to False.
+            event (LogEvent): The log event whose handling made running this
+                function. (Not used by default, may be useful for subclasses)
 
         Returns:
-            int: The number of characters written.
+            bool: Whether this logger is disabled (for this event).
         """
-        return self.log(Level.debug, message, traceback, 5)
+        return not self.enabled
 
-    def info(
-        self, message: Stringable, traceback: bool = False
-    ) -> Optional[LogEvent]:
+    def should_propagate(self, event: LogEvent) -> bool:  # noqa: ARG002
         """
-        Log an info message.
+        Returns whether this logger should propagate (for this event).
 
         Args:
-            message (Stringable): The message.
-            traceback (bool, optional): Whether to include the traceback.\
- Defaults to False.
+            event (LogEvent): The log event whose handling made running this
+                function. (Not used by default, may be useful for subclasses)
 
         Returns:
-            int: The number of characters written.
+            bool: Whether this logger should propagate (for this event).
         """
-        return self.log(Level.info, message, traceback, 5)
+        return self.propagate
 
-    def warning(
-        self, message: Stringable, traceback: bool = False
-    ) -> Optional[LogEvent]:
+    def actually_propagate(self, event: LogEvent) -> None:
         """
-        Log a warning message.
+        Actually propagate this event to the parent.
 
         Args:
-            message (Stringable): The message.
-            traceback (bool, optional): Whether to include the traceback.\
- Defaults to False.
+            event (LogEvent): The event to propagate.
 
-        Returns:
-            int: The number of characters written.
+        Raises:
+            RuntimeError: If this logger doesn't have a parent.
         """
-        return self.log(Level.warning, message, traceback, 5)
+        if self.parent is None:
+            raise RuntimeError("cannot propagate without a parent")
+        return self.parent.log(event)
 
-    def error(
-        self, message: Stringable, traceback: bool = False
-    ) -> Optional[LogEvent]:
+    def is_enabled_for(self, level: int) -> bool:
         """
-        Log an error message.
+        Returns whether `level` is over the threshold.
+
+        >>> root.threshold
+        <Level.WARNING: 30>
+        >>> root.is_enabled_for(Level.INFO)
+        False
+        >>> root.is_enabled_for(Level.WARNING)
+        True
 
         Args:
-            message (Stringable): The message.
-            traceback (bool, optional): Whether to include the traceback.\
- Defaults to False.
+            level (int): The level to check.
 
         Returns:
-            int: The number of characters written.
+            bool: `level >= self.threshold`
         """
-        return self.log(Level.error, message, traceback, 5)
-
-    def critical(
-        self, message: Stringable, traceback: bool = False
-    ) -> Optional[LogEvent]:
-        """
-        Log a critical/fatal message.
-
-        Args:
-            message (Stringable): The message.
-            traceback (bool, optional): Whether to include the traceback.\
- Defaults to False.
-
-        Returns:
-            int: The number of characters written.
-        """
-        return self.log(Level.critical, message, traceback, 5)
-
-    def get_child(self, name: str) -> "Logger":
-        """
-        Get a child logger.
-
-        Returns:
-            Logger: The child logger.
-        """
-        # This function should be short, so if the user doesn't like it, it
-        # can be copy-pasted, and the user can change it.
-        # (That's why we have `._inherit`)
-        return type(self)(name, self)
-
-    def is_enabled_for(self, level: Levelable) -> bool:
-        """
-        Check if the logger is enabled for the given level.
-
-        Args:
-            level (Levelable): The level to check.
-
-        Returns:
-            bool: Whether the logger is enabled for the given level.
-        """
-        level = to_level(level, True)
         return level >= self.threshold
 
     def should_be_logged(self, event: LogEvent) -> bool:
         """
-        Returns whether or not `event` should be logged.
+        Returns whether this event should be actually logged.
+
+        By defaults, it checks the event's level.
 
         Args:
-            event (LogEvent): The log event in question.
+            event (LogEvent): The event in question.
 
         Returns:
-            bool: True if it should be logged, False otherwise.
+            bool: Whether it should actually be logger by this logger.
         """
         return self.is_enabled_for(event.level)
 
-
-@dataclasses.dataclass(order=True)
-class IndentLogger:
-    """Indent the logger."""
-
-    logger: Logger
-
-    def __enter__(self) -> int:
+    def log(self, event: LogEvent) -> None:
         """
-        Indent the logger by one.
+        Correctly log the event.
 
-        Returns:
-            int: The logger's indent
+        This function checks if this logger is disabled, if the event should be
+        logged, and it propagates if necessary.
+
+        Args:
+            event (LogEvent): The event to log.
         """
-        self.logger.indent += 1
-        return self.logger.indent
+        if self.is_disabled(event):
+            return
+        if self.should_propagate(event):
+            self.actually_propagate(event)
+            return
+        if self.should_be_logged(event):
+            self._log(event)
 
-    def __exit__(
+    def _predefined_log(
         self,
-        type_: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        level: int,
+        message: str,
+        exception: bool,  # noqa: FBT001
     ) -> None:
+        # Used by .debug(), .info(), ...
+        event = self.create_log_event(
+            message=message,
+            level=level,
+            indentation=self.indentation,
+            line_number=sys._getframe(2).f_lineno,  # noqa: SLF001
+            exception=sys.last_value if exception else None,
+        )
+        self.log(event)
+
+    def debug(self, message: str, exception: bool = False) -> None:  # noqa: FBT001, FBT002
         """
-        Unindent the logger by one.
+        Log an event with debug level.
 
         Args:
-            type_ (Type[BaseException]): The exception type.
-            value (BaseException): The exception.
-            traceback (TracebackType): The traceback.
+            message (str): The message.
+            exception (bool, optional): Whether to associate the latest
+                exception with this event. Defaults to False.
         """
-        self.logger.indent -= 1
+        self._predefined_log(Level.DEBUG, message, exception)
 
-
-@dataclasses.dataclass(order=True)
-class ChangeThreshold:
-    """Change the threshold for a logger."""
-
-    def __init__(self, logger: Logger, level: Levelable) -> None:
+    def info(self, message: str, exception: bool = False) -> None:  # noqa: FBT001, FBT002
         """
-        Initialize the threshold changer.
+        Log an event with info level.
 
         Args:
-            logger (Logger): The logger.
-            level (Levelable): The new threshold.
+            message (str): The message.
+            exception (bool, optional): Whether to associate the latest
+                exception with this event. Defaults to False.
         """
-        self.logger = logger
-        self.level = to_level(level, True)
+        self._predefined_log(Level.INFO, message, exception)
 
-    def __enter__(self) -> Union[Level, int]:
+    def warning(self, message: str, exception: bool = False) -> None:  # noqa: FBT001, FBT002
         """
-        Change the threshold.
-
-        Returns:
-            Union[Level, int]: The old threshold.
-        """
-        self.old_level = self.logger.threshold
-        self.logger.threshold = self.level
-        return self.old_level
-
-    def __exit__(
-        self,
-        type_: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> None:
-        """
-        Restore the threshold.
+        Log an event with warning level.
 
         Args:
-            type_ (Optional[Type[BaseException]]): The exception type.
-            value (Optional[BaseException]): The exception.
-            traceback (Optional[TracebackType]): The traceback.
+            message (str): The message.
+            exception (bool, optional): Whether to associate the latest
+                exception with this event. Defaults to False.
         """
-        self.logger.threshold = self.old_level
+        self._predefined_log(Level.WARNING, message, exception)
+
+    def error(self, message: str, exception: bool = False) -> None:  # noqa: FBT001, FBT002
+        """
+        Log an event with error level.
+
+        Args:
+            message (str): The message.
+            exception (bool, optional): Whether to associate the latest
+                exception with this event. Defaults to False.
+        """
+        self._predefined_log(Level.ERROR, message, exception)
+
+    def critical(self, message: str, exception: bool = False) -> None:  # noqa: FBT001, FBT002
+        """
+        Log an event with critical level.
+
+        Args:
+            message (str): The message.
+            exception (bool, optional): Whether to associate the latest
+                exception with this event. Defaults to False.
+        """
+        self._predefined_log(Level.CRITICAL, message, exception)
+
+    @property
+    @contextlib.contextmanager
+    def indent(self) -> Generator[None, None, None]:
+        """A context manager to indent and then de-indent the logger."""
+        self.indentation += 1
+        try:
+            yield
+        finally:
+            self.indentation -= 1
+
+    @contextlib.contextmanager
+    def change_threshold(
+        self, new_threshold: int
+    ) -> Generator[None, None, None]:
+        """
+        Context manage to modify and then restore the logger's threshold.
+
+        >>> root.threshold
+        <Level.WARNING: 30>
+        >>> with root.change_threshold(15):
+        ...     root.threshold
+        15
+        >>> root.threshold
+        <Level.WARNING: 30>
+
+        Args:
+            new_threshold (int): The new threshold.
+        """
+        old_threshold = self.threshold
+        self.threshold = new_threshold
+        try:
+            yield
+        finally:
+            self.threshold = old_threshold
 
 
-_allow_root = True
-root = Logger("root")
-_allow_root = False
+root = Logger._create_root()  # noqa: SLF001

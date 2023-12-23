@@ -15,642 +15,476 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
-import base64
-import secrets
-from time import time as get_unix_time
-from types import SimpleNamespace
-from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
+import sys
+import time as timelib
+from unittest.mock import Mock
 
 import mylog
 import pytest
 import termcolor
 
-T = TypeVar("T")
+try:
+    0 / 0  # noqa: B018
+except ZeroDivisionError as err:
+    exception = err
 
-mylog.root.handlers = [mylog.NoHandler()]
-
-
-class Stream:
-    """A stream that can be used for testing. No output to stdout."""
-
-    def __init__(self) -> None:
-        self.wrote = ""
-        self.flushed = False
-
-    def write(self, __s: str, /) -> int:
-        self.wrote += __s
-        return len(__s)
-
-    def flush(self) -> None:
-        self.flushed = True
+TEST_LOG_EVENT = mylog.LogEvent(
+    message="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do.",
+    level=69,
+    time=0,
+    indentation=6,
+    line_number=1024,
+    exception=exception,
+)
 
 
-def iterable_isinstance(iterable: Iterable[Any], cls: type) -> bool:
-    return all(isinstance(x, cls) for x in iterable)
+class NeverHandler(mylog.Handler):
+    def handle(*_: object, **__: object) -> object:
+        raise AssertionError("call not expected")
 
 
-def _randint(__a: int, __b: int, /) -> int:
-    # random.randint is used only here,
-    # so we have to use "nosec" only once
-    return secrets.SystemRandom().randint(__a, __b)  # nosec B311
-
-
-def _randbytes(length: int) -> bytes:
-    # random.randbytes is used only here,
-    # so we have to use "nosec" only once
-    return secrets.token_bytes(length)  # nosec B311
-
-
-def _randchoice(seq: Sequence[T]) -> T:
-    # random.choice is used only here,
-    # so we have to use "nosec" only once
-    return secrets.SystemRandom().choice(seq)  # nosec B311
-
-
-def _random_int(
-    neg_ok: bool, *, only_if: Callable[[int], bool] = lambda _: True
-) -> int:
-    if neg_ok:
-        rv = _randint(-50, 50)
-    rv = _randint(0, 100)
-    if only_if(rv):
-        return rv
-    return _random_int(neg_ok, only_if=only_if)  # pragma: no cover
-
-
-def _random_bytes(
-    *, only_if: Callable[[bytes], bool] = lambda _: True
-) -> bytes:
-    rv = _randbytes(_random_int(False))
-    if only_if(rv):
-        return rv
-    return _random_bytes(only_if=only_if)  # pragma: no cover
-
-
-def _random_urlsafe(*, only_if: Callable[[str], bool] = lambda _: True) -> str:
-    tok = _random_bytes()
-    rv = base64.urlsafe_b64encode(tok).rstrip(b"=").decode("ascii")
-    if only_if(rv):
-        return rv
-    return _random_urlsafe(only_if=only_if)  # pragma: no cover
-
-
-def _random_nonlevel_int(
-    *, only_if: Callable[[int], bool] = lambda _: True
-) -> int:
-    rv = _random_int(
-        True,
-        only_if=lambda num: num not in {10, 20, 30, 40, 50},
-    )
-    if only_if(rv):
-        return rv
-    return _random_nonlevel_int(only_if=only_if)  # pragma: no cover
-
-
-def _random_level() -> Tuple[Union[mylog.Level, int, str], mylog.Level]:
-    lvl = _randchoice(tuple(mylog.Level))
-    _to = _randchoice(("lvl", "int", "str"))
-    return {
-        "lvl": (lvl, lvl),
-        "int": (lvl.value, lvl),
-        "str": (lvl.name, lvl),
-    }[_to]
-
-
-def random_anything(
-    *,
-    only_if: Callable[[Union[bytes, int, str]], bool] = lambda _: True,
-) -> Union[str, bytes, int]:
-    rt = _randchoice(("hex", "bytes", "urlsafe", "int"))
-    if rt == "hex":
-        rv = _random_bytes().hex()
-    elif rt == "bytes":
-        rv = _random_bytes()
-    elif rt == "urlsafe":
-        rv = _random_urlsafe()
-    elif rt == "int":
-        rv = _random_int(True)
-    else:
-        raise ValueError(rt)  # pragma: no cover
-    if only_if(rv):
-        return rv
-    return random_anything(only_if=only_if)  # pragma: no cover
-
-
-def x_is_y(__x: object, __y: object, /) -> bool:
-    # So we don't get "do not compare types, use 'isinstance()' flake8(E721)"
-    return __x is __y
-
-
-def x_equals_y(__x: object, __y: object, /) -> bool:
-    # So we test "==" AND "__eq__"
-    return (__x == __y) and (__x.__eq__(__y))
-
-
-def x_not_equals_y(__x: object, __y: object, /) -> bool:
-    # So we test "!=" AND "__ne__"
-    return (__x != __y) and (__x.__ne__(__y))
-
-
-def test_to_level() -> None:
-    assert mylog.to_level(mylog.Level.debug) == mylog.Level.debug
-    assert mylog.to_level(mylog.Level.info) == mylog.Level.info
-    assert mylog.to_level(mylog.Level.warning) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.warn) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.error) == mylog.Level.error
-    assert mylog.to_level(mylog.Level.critical) == mylog.Level.critical
-    assert mylog.to_level(mylog.Level.fatal) == mylog.Level.critical
-
-    assert mylog.to_level(mylog.Level.debug.numerator) == mylog.Level.debug
-    assert mylog.to_level(mylog.Level.info.numerator) == mylog.Level.info
-    assert mylog.to_level(mylog.Level.warning.numerator) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.warn.numerator) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.error.numerator) == mylog.Level.error
+def test_optional_string_format() -> None:
+    assert mylog.optional_string_format("Hello, world!") == "Hello, world!"
     assert (
-        mylog.to_level(mylog.Level.critical.numerator) == mylog.Level.critical
-    )
-    assert mylog.to_level(mylog.Level.fatal.numerator) == mylog.Level.critical
-
-    assert mylog.to_level(mylog.Level.debug.value) == mylog.Level.debug
-    assert mylog.to_level(mylog.Level.info.value) == mylog.Level.info
-    assert mylog.to_level(mylog.Level.warning.value) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.warn.value) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.error.value) == mylog.Level.error
-    assert mylog.to_level(mylog.Level.critical.value) == mylog.Level.critical
-    assert mylog.to_level(mylog.Level.fatal.value) == mylog.Level.critical
-
-    assert (
-        mylog.to_level(str(mylog.Level.debug.numerator)) == mylog.Level.debug
-    )
-    assert mylog.to_level(str(mylog.Level.info.numerator)) == mylog.Level.info
-    assert (
-        mylog.to_level(str(mylog.Level.warning.numerator))
-        == mylog.Level.warning
+        mylog.optional_string_format("Hello, world!", foo="hi")
+        == "Hello, world!"
     )
     assert (
-        mylog.to_level(str(mylog.Level.warn.numerator)) == mylog.Level.warning
+        mylog.optional_string_format("Hello, world!", bar="bye")
+        == "Hello, world!"
     )
     assert (
-        mylog.to_level(str(mylog.Level.error.numerator)) == mylog.Level.error
+        mylog.optional_string_format("Hello, world!", foo="hi", bar="bye")
+        == "Hello, world!"
     )
     assert (
-        mylog.to_level(str(mylog.Level.critical.numerator))
-        == mylog.Level.critical
+        mylog.optional_string_format("Hello, {foo} world!")
+        == "Hello, {foo} world!"
     )
     assert (
-        mylog.to_level(str(mylog.Level.fatal.numerator))
-        == mylog.Level.critical
+        mylog.optional_string_format("Hello, {foo} world!", foo="hi")
+        == "Hello, hi world!"
     )
-
-    assert mylog.to_level(str(mylog.Level.debug.value)) == mylog.Level.debug
-    assert mylog.to_level(str(mylog.Level.info.value)) == mylog.Level.info
     assert (
-        mylog.to_level(str(mylog.Level.warning.value)) == mylog.Level.warning
+        mylog.optional_string_format("Hello, {foo} world! {bar}", foo="hi")
+        == "Hello, hi world! {bar}"
     )
-    assert mylog.to_level(str(mylog.Level.warn.value)) == mylog.Level.warning
-    assert mylog.to_level(str(mylog.Level.error.value)) == mylog.Level.error
     assert (
-        mylog.to_level(str(mylog.Level.critical.value)) == mylog.Level.critical
+        mylog.optional_string_format("Hello, {foo} world! {bar}", bar="bye")
+        == "Hello, {foo} world! bye"
     )
-    assert mylog.to_level(str(mylog.Level.fatal.value)) == mylog.Level.critical
-
-    assert mylog.to_level(mylog.Level.debug.name) == mylog.Level.debug
-    assert mylog.to_level(mylog.Level.info.name) == mylog.Level.info
-    assert mylog.to_level(mylog.Level.warning.name) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.warn.name) == mylog.Level.warning
-    assert mylog.to_level(mylog.Level.error.name) == mylog.Level.error
-    assert mylog.to_level(mylog.Level.critical.name) == mylog.Level.critical
-    assert mylog.to_level(mylog.Level.fatal.name) == mylog.Level.critical
-
-    with pytest.raises(ValueError, match="Invalid level"):
-        mylog.to_level(_random_nonlevel_int())
-
-    with pytest.raises(ValueError, match="Invalid level"):
-        mylog.to_level(
-            _random_urlsafe(
-                # Relatively unlikely
-                only_if=lambda x: x
-                not in {
-                    "debug",
-                    "info",
-                    "warn",
-                    "warning",
-                    "error",
-                    "critical",
-                    "fatal",
-                }
-            )
+    assert (
+        mylog.optional_string_format(
+            "Hello, {foo} world! {bar}", foo="hi", bar="bye"
         )
-
-    with pytest.raises(ValueError, match="Invalid level"):
-        mylog.to_level(_random_bytes())
-
-    nli = _random_nonlevel_int()
-    # ↪ Non-level int
-    assert mylog.to_level(nli, True) == nli
-
-
-def random_logger_name() -> str:
-    return _random_urlsafe()
-
-
-def test_nonetype() -> None:
-    assert x_is_y(mylog.NoneType, type(None))
-
-
-def test_setattr() -> None:
-    original = random_anything()
-    new = random_anything()
-    obj = SimpleNamespace(exampleattr=original)
-
-    with mylog.SetAttr(obj, "exampleattr", new):
-        assert obj.exampleattr == new
-
-    assert obj.exampleattr == original
-
-
-def test_stream_writer_handler() -> None:
-    stream = Stream()
-    handler = mylog.StreamWriterHandler(stream, flush=True)
-    logger = mylog.root.get_child(random_logger_name())
-    logger.handlers = [handler]
-    event = mylog.LogEvent(
-        str(random_anything()),
-        _random_level()[0],
-        _random_int(False),
-        _random_int(False),
-        1,
-        False,
+        == "Hello, hi world! bye"
     )
 
-    handler.handle(logger, event)
-    assert stream.wrote
-    assert stream.flushed
 
-    stream = Stream()
-    handler = mylog.StreamWriterHandler(stream, flush=False)
-    logger = mylog.root.get_child(random_logger_name())
-    logger.handlers = [handler]
-    event = mylog.LogEvent(
-        str(random_anything()),
-        _random_level()[0],
-        _random_int(False),
-        _random_int(False),
-        1,
-        False,
-    )
+class TestLevel:
+    @staticmethod
+    def test_new() -> None:
+        assert mylog.Level.new(20) == mylog.Level.INFO
+        assert mylog.Level.new(50) == mylog.Level.CRITICAL
+        with pytest.raises(ValueError, match=r"invalid level: 0"):
+            mylog.Level.new(0)
+        with pytest.raises(ValueError, match=r"invalid level: 51"):
+            mylog.Level.new(51)
 
-    handler.handle(logger, event)
-    assert stream.wrote
-    assert not stream.flushed
+        assert mylog.Level.new("40") == mylog.Level.ERROR
+        assert mylog.Level.new("10") == mylog.Level.DEBUG
+        with pytest.raises(ValueError, match=r"invalid level: '0'"):
+            mylog.Level.new("0")
+        with pytest.raises(ValueError, match=r"invalid level: '35'"):
+            mylog.Level.new("35")
+
+        assert mylog.Level.new("wArNIng") == mylog.Level.WARNING
+        assert mylog.Level.new("eRROR") == mylog.Level.ERROR
+        with pytest.raises(ValueError, match=r"invalid level: 'foobar'"):
+            mylog.Level.new("foobar")
+        with pytest.raises(ValueError, match=r"invalid level: 'FATAL'"):
+            mylog.Level.new("FATAL")
+
+    @staticmethod
+    def test_new_or_int() -> None:
+        assert mylog.Level.new_or_int(20) == mylog.Level.INFO
+        assert mylog.Level.new_or_int(50) == mylog.Level.CRITICAL
+        assert mylog.Level.new_or_int(0) == 0
+        assert mylog.Level.new_or_int(51) == 51
+
+        assert mylog.Level.new_or_int("40") == mylog.Level.ERROR
+        assert mylog.Level.new_or_int("10") == mylog.Level.DEBUG
+        assert mylog.Level.new_or_int("0") == 0
+        assert mylog.Level.new_or_int("35") == 35
+
+        assert mylog.Level.new_or_int("wArNIng") == mylog.Level.WARNING
+        assert mylog.Level.new_or_int("eRROR") == mylog.Level.ERROR
+        with pytest.raises(ValueError, match=r"invalid level: 'foobar'"):
+            mylog.Level.new_or_int("foobar")
+        with pytest.raises(ValueError, match=r"invalid level: 'FATAL'"):
+            mylog.Level.new_or_int("FATAL")
+
+
+def test_no_handler() -> None:
+    mylog.NoHandler().handle(mylog.root, TEST_LOG_EVENT)
+
+
+class TestStreamWriterHandler:
+    @staticmethod
+    def test_color() -> None:
+        handler = mylog.StreamWriterHandler(sys.stderr)
+        assert handler.color("DEBUG") == termcolor.colored("DEBUG", "blue")
+        assert handler.color("CRITICAL") == termcolor.colored(
+            "CRITICAL", "red", "on_yellow", ["bold", "underline", "blink"]
+        )
+        assert handler.color("FATAL") == "FATAL"
+        handler.use_colors = False
+        assert handler.color("DEBUG") == "DEBUG"
+        assert handler.color("CRITICAL") == "CRITICAL"
+        assert handler.color("FATAL") == "FATAL"
+
+    @staticmethod
+    def test_level_to_str() -> None:
+        handler = mylog.StreamWriterHandler(sys.stderr)
+        assert handler.level_to_str(mylog.Level.DEBUG) == termcolor.colored(
+            "DEBUG", "blue"
+        ).ljust(8)
+        assert handler.level_to_str(mylog.Level.CRITICAL) == termcolor.colored(
+            "CRITICAL", "red", "on_yellow", ["bold", "underline", "blink"]
+        ).ljust(8)
+        handler.use_colors = False
+        assert handler.level_to_str(mylog.Level.DEBUG) == "DEBUG   "
+        assert handler.level_to_str(mylog.Level.CRITICAL) == "CRITICAL"
+
+    @staticmethod
+    def test_format_message() -> None:
+        handler = mylog.StreamWriterHandler(sys.stderr)
+        message = handler.format_message(mylog.root, TEST_LOG_EVENT)
+        assert message.startswith(
+            "[root 69       1970-01-01 00:00:00+00:00 line: 01024]"
+            "             Lorem ipsum dolor sit amet, consectetur adipiscing"
+            " elit, sed do.\nTraceback (most recent call last):\n\n  File "
+        )
+        assert message.endswith("\n\nZeroDivisionError: division by zero\n\n")
+
+    @staticmethod
+    def test_handle_flush() -> None:
+        mock = Mock()
+        handler = mylog.StreamWriterHandler(mock)
+        handler.handle(mylog.root, TEST_LOG_EVENT)
+        mock.write.assert_called_once()
+        assert mock.write.call_args.args[0].startswith(
+            "[root 69       1970-01-01 00:00:00+00:00 line: 01024]"
+            "             Lorem ipsum dolor sit amet, consectetur adipiscing"
+            " elit, sed do.\nTraceback (most recent call last):\n\n  File "
+        )
+        assert mock.write.call_args.args[0].endswith(
+            "\n\nZeroDivisionError: division by zero\n\n"
+        )
+        mock.flush.assert_called_once_with()
+
+    @staticmethod
+    def test_handle_no_flush() -> None:
+        mock = Mock()
+        handler = mylog.StreamWriterHandler(mock)
+        handler.flush = False
+        handler.handle(mylog.root, TEST_LOG_EVENT)
+        mock.write.assert_called_once()
+        assert mock.write.call_args.args[0].startswith(
+            "[root 69       1970-01-01 00:00:00+00:00 line: 01024]"
+            "             Lorem ipsum dolor sit amet, consectetur adipiscing"
+            " elit, sed do.\nTraceback (most recent call last):\n\n  File "
+        )
+        assert mock.write.call_args.args[0].endswith(
+            "\n\nZeroDivisionError: division by zero\n\n"
+        )
+        mock.flush.assert_not_called()
 
 
 class TestLogger:
     @staticmethod
-    def test_thing_to_compare(monkeypatch: pytest.MonkeyPatch) -> None:
-        logger = mylog.root.get_child(random_logger_name())
-        assert logger._thing_to_compare(logger) == str(logger._id)
-        with monkeypatch.context() as monkey:
-            monkey.setattr(mylog.Logger, "compare_using_name", True)
-            assert logger._thing_to_compare(logger) == logger.name
-
-    @staticmethod
-    def test_eq() -> None:
-        l1 = l2 = mylog.root.get_child(random_logger_name())
-        assert x_equals_y(l1, l2)
-        assert x_equals_y(l2, l1)
-        assert x_equals_y(mylog.root, mylog.root)
-        assert l1.__eq__(object()) == NotImplemented
-
-    @staticmethod
-    def test_ne() -> None:
-        l1 = mylog.root.get_child(random_logger_name())
-        l2 = mylog.root.get_child(random_logger_name())
-        assert x_not_equals_y(l1, l2)
-        assert x_not_equals_y(l2, l1)
-        assert l1.__ne__(object()) == NotImplemented
-
-    @staticmethod
     def test_get_default_handlers() -> None:
-        _handlers = mylog.root.get_default_handlers()
-        assert isinstance(_handlers, list)
-        assert iterable_isinstance(_handlers, mylog.Handler)
+        assert mylog.Logger.get_default_handlers() == [
+            mylog.StreamWriterHandler(sys.stderr)
+        ]
 
     @staticmethod
-    def test_init() -> None:
+    def test_create_root() -> None:
+        root = mylog.Logger._create_root()
+        assert root.name == "root"
+        assert root.parent is None
+
+    @staticmethod
+    def test_new() -> None:
+        new = mylog.Logger.new(
+            name="foobar",
+            parent=mylog.root,
+            handlers=[mylog.NoHandler()],
+            propagate=True,
+            indentation=10,
+            enabled=False,
+            threshold=12,
+        )
+        assert new.name == "foobar"
+        assert new.parent == mylog.root
+        # to also test __ne__  vv
+        assert not (new.parent != mylog.root)  # noqa: SIM202
+        assert new.handlers == [mylog.NoHandler()]
+        assert new.propagate is True
+        assert new.indentation == 10
+        assert new.enabled is False
+        assert new.threshold == 12
+
+    @staticmethod
+    def test_repr() -> None:
+        assert repr(mylog.root) == "<Logger root>"
+
+    @staticmethod
+    def test_inherit() -> None:
         with pytest.raises(
-            ValueError,
-            match="Cannot create a new logger: Root logger already exists",
+            TypeError, match=r"cannot inherit if parent is None"
         ):
-            mylog.Logger(higher=None, name=random_logger_name())
+            mylog.root.inherit()
 
-        # Don't set `_allow_root` in production code
-        mylog._allow_root = True
-        logger = mylog.Logger(random_logger_name(), None)
-        mylog._allow_root = False
-
-        assert logger.higher is None
+        logger = mylog.Logger.new(name="logger", parent=mylog.root)
+        logger.name = (
+            logger.propagate
+        ) = logger.list_ = logger.indentation = logger.enabled = 1
+        logger.inherit(
+            mylog.AttributesToInherit(
+                name=True,
+                propagate=True,
+                list_=True,
+                indentation=True,
+                enabled=True,
+            )
+        )
+        assert logger.name == "root"
         assert logger.propagate is False
-        assert logger.list == []
-
-        assert logger.format == mylog.DEFAULT_FORMAT
-        assert logger.threshold == mylog.DEFAULT_THRESHOLD
+        assert logger.list_ == mylog.root.list_
+        assert logger.indentation == 0
         assert logger.enabled is True
-        assert logger.indent == 0
+        assert logger.threshold == mylog.DEFAULT_THRESHOLD
+        assert logger.handlers == [mylog.StreamWriterHandler(sys.stderr)]
 
+    @staticmethod
+    def test_create_child() -> None:
+        logger = mylog.root.create_child(
+            "logger",
+            mylog.AttributesToInherit(
+                name=True,
+                propagate=True,
+                list_=True,
+                indentation=True,
+                enabled=True,
+            ),
+        )
+        assert logger.name == "root"
+        assert logger.propagate is False
+        assert logger.list_ == mylog.root.list_
+        assert logger.indentation == 0
+        assert logger.enabled is True
+        assert logger.threshold == mylog.DEFAULT_THRESHOLD
+        assert logger.handlers == [mylog.StreamWriterHandler(sys.stderr)]
+
+    @staticmethod
+    def test_create_log_event() -> None:
+        assert mylog.root.create_log_event(
+            message="foo, bar?",
+            level=10,
+            indentation=2,
+            line_number=63,
+            exception=None,
+        ) == mylog.LogEvent(
+            message="foo, bar?",
+            level=10,
+            time=timelib.time(),
+            indentation=2,
+            line_number=63,
+            exception=None,
+        )
+
+    @staticmethod
+    def test_add_to_list() -> None:
+        logger = mylog.root.create_child("logger")
+        logger.list_ = Mock()
+        logger._add_to_list(TEST_LOG_EVENT)
+        logger.list_.append.assert_called_once_with(TEST_LOG_EVENT)
+
+    @staticmethod
+    def test_handle() -> None:
+        logger = mylog.root.create_child("logger")
+        handler = Mock()
+        logger._handle(TEST_LOG_EVENT, handler)
+        handler.handle.assert_called_once_with(logger, TEST_LOG_EVENT)
+
+    @staticmethod
+    def test_call_handlers() -> None:
+        logger = mylog.root.create_child("logger")
+        handler1 = Mock()
+        handler2 = Mock()
+        logger.handlers = [handler1, handler2]
+        logger._call_handlers(TEST_LOG_EVENT)
+        handler1.handle.assert_called_once_with(logger, TEST_LOG_EVENT)
+        handler2.handle.assert_called_once_with(logger, TEST_LOG_EVENT)
+
+    @staticmethod
+    def test_log() -> None:
+        logger = mylog.root.create_child("logger")
+        handler1 = Mock()
+        handler2 = Mock()
+        logger.handlers = [handler1, handler2]
+        logger.list_ = Mock()
+
+        logger._log(TEST_LOG_EVENT)
+
+        handler1.handle.assert_called_once_with(logger, TEST_LOG_EVENT)
+        handler2.handle.assert_called_once_with(logger, TEST_LOG_EVENT)
+        logger.list_.append.assert_called_once_with(TEST_LOG_EVENT)
+
+    @staticmethod
+    def test_is_disabled() -> None:
+        assert mylog.root.is_disabled(TEST_LOG_EVENT) is False
+        mylog.root.enabled = False
+        assert mylog.root.is_disabled(TEST_LOG_EVENT) is True
+        mylog.root.enabled = True
+        assert mylog.root.is_disabled(TEST_LOG_EVENT) is False
+
+    @staticmethod
+    def test_should_propagate() -> None:
+        assert mylog.root.should_propagate(TEST_LOG_EVENT) is False
+        mylog.root.propagate = True
+        assert mylog.root.should_propagate(TEST_LOG_EVENT) is True
+        mylog.root.propagate = False
+        assert mylog.root.should_propagate(TEST_LOG_EVENT) is False
+
+    @staticmethod
+    def test_actually_propagate() -> None:
         with pytest.raises(
-            ValueError, match=r"Cannot inherit if higher is None\."
+            RuntimeError, match=r"cannot propagate without a parent"
         ):
-            logger._inherit()
-
-    @staticmethod
-    def test_color() -> None:
-        logger = mylog.root
-        assert logger.color("quick brown fox") == "quick brown fox"
-        assert logger.color("DEBUG") == termcolor.colored(
-            "DEBUG".ljust(8), "blue"
-        )
-        assert logger.color("INFO") == termcolor.colored(
-            "INFO".ljust(8), "cyan"
-        )
-        assert logger.color("WARNING") == termcolor.colored(
-            "WARNING".ljust(8), "yellow"
-        )
-        assert logger.color("ERROR") == termcolor.colored(
-            "ERROR".ljust(8), "red"
-        )
-        assert logger.color("CRITICAL") == termcolor.colored(
-            "CRITICAL".ljust(8),
-            "red",
-            "on_yellow",
-            ["bold", "underline", "blink"],
-        )
-
-    @staticmethod
-    def test_level_to_string() -> None:
-        logger = mylog.root
-        assert logger.level_to_str(mylog.Level.debug) == termcolor.colored(
-            "DEBUG".ljust(8), "blue"
-        )
-        assert logger.level_to_str(mylog.Level.info) == termcolor.colored(
-            "INFO".ljust(8), "cyan"
-        )
-        assert logger.level_to_str(mylog.Level.warning) == termcolor.colored(
-            "WARNING".ljust(8), "yellow"
-        )
-        assert logger.level_to_str(mylog.Level.warn) == termcolor.colored(
-            "WARNING".ljust(8), "yellow"
-        )
-        assert logger.level_to_str(mylog.Level.error) == termcolor.colored(
-            "ERROR".ljust(8), "red"
-        )
-        assert logger.level_to_str(mylog.Level.critical) == termcolor.colored(
-            "CRITICAL".ljust(8),
-            "red",
-            "on_yellow",
-            ["bold", "underline", "blink"],
-        )
-        assert logger.level_to_str(mylog.Level.fatal) == termcolor.colored(
-            "CRITICAL".ljust(8),
-            "red",
-            "on_yellow",
-            ["bold", "underline", "blink"],
-        )
-        nli = _random_nonlevel_int()
-        assert logger.level_to_str(nli) == str(nli).ljust(8)
-
-    @staticmethod
-    def test_format_msg() -> None:
-        logger = mylog.root
-        lvl = _random_level()
-        event = mylog.LogEvent(str(random_anything()), lvl[0], 0, 0, 0, False)
-
-        # Check if it runs
-        for _ in range(10):
-            logger.format_message(event)
-
-        event = mylog.LogEvent(str(random_anything()), lvl[0], 0, 0, 0, True)
-
-        with pytest.warns(
-            UserWarning, match=r"No traceback available, but traceback=True"
-        ):
-            logger.format_message(event)
-
-    @staticmethod
-    def test_actually_log() -> None:
-        logger = mylog.root.get_child(random_logger_name())
-        logger.list = []
-        logger.indent = _randint(0, 10)
-        stream = Stream()
-        handler = mylog.StreamWriterHandler(
-            stream, flush=False, use_colors=False, format_message=False
-        )
-        logger.handlers = [handler]
-        lvl = _random_level()
-        msg = random_anything()
-        frame_depth = _randint(0, 3)
-
-        time = get_unix_time()
-        log_event = mylog.LogEvent(
-            str(msg), lvl[1], time, logger.indent, frame_depth, False
-        )
-        logger._actually_log(log_event)
-
-        assert len(logger.list) == 1
-        event = logger.list[0]
-        assert event.message == str(msg)
-        assert event.level == lvl[1]
-        assert time - 1 < event.time < time + 1
-        assert event.indent == logger.indent
-        assert event.frame_depth == frame_depth
-        assert stream.wrote == str(msg)
-
-    @staticmethod
-    def test_log_propagate() -> None:
-        logger = mylog.root.get_child(random_logger_name())
-        assert logger.higher
-        logger.list = []
-        logger.indent = _randint(0, 10)
-        logger.propagate = True
-        logger.handlers = []
-        logger.threshold = mylog.Level.debug
-        logger.higher.handlers = []
-        logger.higher.threshold = mylog.Level.debug
-        lvl = _random_level()
-        msg = random_anything()
-        frame_depth = _randint(0, 3)
-
-        time = get_unix_time()
-        logger.log(lvl[0], msg, False, frame_depth)
-
-        assert not logger.list
-        event = logger.higher.list[-1]
-        assert event.message == str(msg)
-        assert event.level == lvl[1]
-        assert time - 1 < event.time < time + 1
-        assert event.indent == logger.higher.indent
-        assert event.frame_depth == frame_depth + 1
-        #                                       ~~~
-        # Since propagate is True, Logger._log() will automatically add one to
-        # the frame_depth, if logging is done by the parent.
-
-        with pytest.warns(
-            UserWarning, match="Root logger should not propagate"
-        ):
-            mylog.root.propagate = True
-            mylog.root.log(_random_level()[0], random_anything(), False, 2)
-            mylog.root.propagate = False
-
-    @staticmethod
-    def test_log_no_propagate() -> None:
-        logger = mylog.root
-        logger.list = []
-        logger.indent = _randint(0, 10)
-        logger.threshold = mylog.Level.debug
-        logger.handlers = []
-        lvl = _random_level()
-        msg = random_anything()
-        frame_depth = _randint(0, 3)
-
-        time = get_unix_time()
-        logger.log(lvl[0], msg, False, frame_depth)
-
-        assert len(logger.list) == 1
-        event = logger.list[-1]
-        assert event.message == str(msg)
-        assert event.level == lvl[1]
-        assert time - 1 < event.time < time + 1
-        assert event.indent == logger.indent
-        assert event.frame_depth == frame_depth
-
-    @staticmethod
-    @pytest.mark.parametrize(
-        ("method_name", "lvl"),
-        [
-            ("debug", mylog.Level.debug),
-            ("info", mylog.Level.info),
-            ("warning", mylog.Level.warning),
-            ("error", mylog.Level.error),
-            ("critical", mylog.Level.critical),
-        ],
-    )
-    def test_log_methods(method_name: str, lvl: mylog.Level) -> None:
-        logger = mylog.root
-        logger.list = []
-        logger.indent = _randint(0, 10)
-        logger.threshold = mylog.Level.debug
-        logger.handlers = []
-        msg = random_anything()
-
-        time = get_unix_time()
-        getattr(logger, method_name)(msg, False)
-
-        assert len(logger.list) == 1
-        event = logger.list[-1]
-        assert event.message == str(msg)
-        assert event.level == lvl
-        assert time - 1 < event.time < time + 1
-        assert event.indent == logger.indent
-
-    @staticmethod
-    def test_get_child() -> None:
-        parent = mylog.root
-        child = parent.get_child(random_logger_name())
-
-        assert isinstance(child, type(parent))
-        assert child.propagate is False
-        assert child.list == []
-        assert child.indent == 0
-        assert child.enabled is True
-
-        assert child.format == parent.format
-        assert child.threshold == parent.threshold
+            mylog.root.actually_propagate(TEST_LOG_EVENT)
+        parent = Mock()
+        logger = mylog.Logger.new(name="logger", parent=parent)
+        logger.actually_propagate(TEST_LOG_EVENT)
+        parent.log.assert_called_once_with(TEST_LOG_EVENT)
 
     @staticmethod
     def test_is_enabled_for() -> None:
-        logger = mylog.root.get_child(random_logger_name())
-
-        logger.threshold = mylog.Level.debug
-        assert logger.is_enabled_for(mylog.Level.debug)
-        assert logger.is_enabled_for(mylog.Level.info)
-        assert logger.is_enabled_for(mylog.Level.warning)
-        assert logger.is_enabled_for(mylog.Level.error)
-        assert logger.is_enabled_for(mylog.Level.critical)
-
-        logger.threshold = mylog.Level.info
-        assert not logger.is_enabled_for(mylog.Level.debug)
-        assert logger.is_enabled_for(mylog.Level.info)
-        assert logger.is_enabled_for(mylog.Level.warning)
-        assert logger.is_enabled_for(mylog.Level.error)
-        assert logger.is_enabled_for(mylog.Level.critical)
-
-        logger.threshold = mylog.Level.warning
-        assert not logger.is_enabled_for(mylog.Level.debug)
-        assert not logger.is_enabled_for(mylog.Level.info)
-        assert logger.is_enabled_for(mylog.Level.warning)
-        assert logger.is_enabled_for(mylog.Level.error)
-        assert logger.is_enabled_for(mylog.Level.critical)
-
-        logger.threshold = mylog.Level.error
-        assert not logger.is_enabled_for(mylog.Level.debug)
-        assert not logger.is_enabled_for(mylog.Level.info)
-        assert not logger.is_enabled_for(mylog.Level.warning)
-        assert logger.is_enabled_for(mylog.Level.error)
-        assert logger.is_enabled_for(mylog.Level.critical)
-
-        logger.threshold = mylog.Level.critical
-        # -
-        logger.list = []
-        logger.debug(random_anything())
-        assert not logger.list
-        # -
-        assert not logger.is_enabled_for(mylog.Level.debug)
-        assert not logger.is_enabled_for(mylog.Level.info)
-        assert not logger.is_enabled_for(mylog.Level.warning)
-        assert not logger.is_enabled_for(mylog.Level.error)
-        assert logger.is_enabled_for(mylog.Level.critical)
-
-        logger.threshold = "fatal"
-        with pytest.raises(
-            TypeError,
-            match=r"'>=' not supported between instances of 'Level' and 'str'",
-        ):
-            logger.is_enabled_for(mylog.Level.critical)
+        assert mylog.root.is_enabled_for(29) is False
+        assert mylog.root.is_enabled_for(30) is True
+        assert mylog.root.is_enabled_for(31) is True
 
     @staticmethod
-    def test_enabled() -> None:
-        logger = mylog.root.get_child(random_logger_name())
-        logger.critical(random_anything())
-        assert logger.list
-        logger.list = []
+    def test_should_be_logged() -> None:
+        assert mylog.root.should_be_logged(TEST_LOG_EVENT) is True
+        assert (
+            mylog.root.should_be_logged(
+                mylog.root.create_log_event("hi", 1, 0, 0, None)
+            )
+        ) is False
 
+    @staticmethod
+    def test_log_disabled() -> None:
+        logger = mylog.root.create_child("logger")
         logger.enabled = False
-        logger.critical(random_anything())
-        assert not logger.list
+        logger.should_propagate = Mock()
+        logger.handlers = [NeverHandler()]
 
-        logger.enabled = True
-        logger.critical(random_anything())
-        assert logger.list
+        logger.log(TEST_LOG_EVENT)
 
+        logger.should_propagate.assert_not_called()
 
-def test_indent_logger() -> None:
-    logger = mylog.root
-    start = _randint(0, 6)
-    logger.indent = start
+    @staticmethod
+    def test_log_propagate() -> None:
+        logger = mylog.root.create_child("logger")
+        logger.propagate = True
+        logger.actually_propagate = Mock()
+        logger.should_be_logged = Mock()
+        logger.handlers = [NeverHandler()]
 
-    with logger.ctxmgr:
-        assert logger.indent == start + 1
+        logger.log(TEST_LOG_EVENT)
 
-    assert logger.indent == start
+        logger.actually_propagate.assert_called_once_with(TEST_LOG_EVENT)
+        logger.should_be_logged.assert_not_called()
 
+    @staticmethod
+    def test_log_should_not_be_logged() -> None:
+        logger = mylog.root.create_child("logger")
+        logger.should_be_logged = lambda _: False
+        logger._log = Mock()
 
-def test_change_threshold() -> None:
-    logger = mylog.root
-    start = _random_level()
-    new = _random_level()
-    logger.threshold = start[1]
+        logger.log(TEST_LOG_EVENT)
 
-    with mylog.ChangeThreshold(logger, new[0]):
-        assert logger.threshold == new[1]
+        logger._log.assert_not_called()
 
-    assert logger.threshold == start[1]
+    @staticmethod
+    def test_log_should_be_logged() -> None:
+        logger = mylog.root.create_child("logger")
+        logger.should_be_logged = lambda _: True
+        logger._log = Mock()
+
+        logger.log(TEST_LOG_EVENT)
+
+        logger._log.assert_called_once_with(TEST_LOG_EVENT)
+
+    @staticmethod
+    def test_predefined_log() -> None:
+        logger = mylog.root.create_child("logger")
+        logger.log = Mock()
+
+        logger._predefined_log(10, "hi", False)
+
+        logger.log.assert_called_once()
+        assert logger.log.call_args.args[0].message == "hi"
+        assert logger.log.call_args.args[0].level == 10
+        assert logger.log.call_args.args[0].exception is None
+
+    @staticmethod
+    def test_predefined_logs() -> None:
+        logger = mylog.root.create_child("logger")
+        logger._predefined_log = Mock()
+
+        logger.debug("hello", True)
+        logger._predefined_log.assert_called_once_with(
+            mylog.Level.DEBUG, "hello", True
+        )
+        logger._predefined_log.reset_mock()
+
+        logger.info("hello", False)
+        logger._predefined_log.assert_called_once_with(
+            mylog.Level.INFO, "hello", False
+        )
+        logger._predefined_log.reset_mock()
+
+        logger.warning("hello", False)
+        logger._predefined_log.assert_called_once_with(
+            mylog.Level.WARNING, "hello", False
+        )
+        logger._predefined_log.reset_mock()
+
+        logger.error("hello", True)
+        logger._predefined_log.assert_called_once_with(
+            mylog.Level.ERROR, "hello", True
+        )
+        logger._predefined_log.reset_mock()
+
+        logger.critical("hello", True)
+        logger._predefined_log.assert_called_once_with(
+            mylog.Level.CRITICAL, "hello", True
+        )
+        logger._predefined_log.reset_mock()
+
+    @staticmethod
+    def test_indent() -> None:
+        assert mylog.root.indentation == 0
+        with mylog.root.indent:
+            assert mylog.root.indentation == 1
+        assert mylog.root.indentation == 0
+
+    @staticmethod
+    def test_threshold() -> None:
+        assert mylog.root.threshold == mylog.Level.WARNING
+        with mylog.root.change_threshold(mylog.Level.INFO):
+            assert mylog.root.threshold == mylog.Level.INFO
+        assert mylog.root.threshold == mylog.Level.WARNING

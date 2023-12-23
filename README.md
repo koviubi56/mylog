@@ -17,28 +17,21 @@ A simple logging library for Python.
 
 First, install it with `pip install python-mylog`. [_Need more help?_](https://packaging.python.org/en/latest/tutorials/installing-packages/)
 
-_For demonstration purposes only! Output may not be the same as shown here!_
-
 ```py
 import mylog
 
-logger = mylog.root.get_child()
-
-logger.info("Hello, world!")
-# Returns: 0
+mylog.root.info("Hello, world!")
 # Output: <nothing>
 # Why? Because the threshold is set to WARNING.
 
 # Try this:
-logger.warning("Hello, world!")
-# Returns: 70
-# Output: [WARNING Sun Mar 27 18:56:57 2022 line: 00001] Hello, world!
+mylog.root.warning("Hello, world!")
+# Output: [root WARNING 2023-12-23 13:39:16.127495+00:00 line: 00001] Hello, world!
 
 # Or
-logger.threshold = mylog.Level.debug
-logger.info("Hello, world!")
-# Returns: 67
-# Output: [INFO Sun Mar 27 18:58:40 2022 line: 00001] Hello, world!
+mylog.root.threshold = mylog.Level.DEBUG
+mylog.root.info("Hello, world!")
+# Output: [root INFO 2023-12-23 13:39:34.231029+00:00 line: 00001] Hello, world!
 ```
 
 ## API reference
