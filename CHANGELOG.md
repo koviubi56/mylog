@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2023-12-24
+
+### Changed
+
+- Changed how `StreamWriterHandler`'s `color_config` to `Mapping[int, tuple[object, ...]]`
+- Changed `DEFAULT_COLOR_CONFIG`
+
+### Removed
+
+- Removed `StreamWriterHandler.color`
+
+### Fixed
+
+- Fixed levels' ljusting in `StreamWriterHandler.level_to_str`.
+
 ## [0.9.0] - 2023-12-23
 
 ### Changed

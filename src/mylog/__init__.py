@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 __author__ = "Koviubi56"
 __email__ = "koviubi56@duck.com"
 __license__ = "GPL-3.0-or-later"
@@ -39,13 +39,6 @@ import termcolor
 from typing_extensions import Self
 
 DEFAULT_FORMAT = "[{name} {level} {time} line: {line}] {indentation}{message}"
-DEFAULT_COLOR_CONFIG = {
-    "DEBUG": ("blue",),
-    "INFO": ("cyan",),
-    "WARNING": ("yellow",),
-    "ERROR": ("red",),
-    "CRITICAL": ("red", "on_yellow", ["bold", "underline", "blink"]),
-}
 
 
 class StreamProtocol(Protocol):
@@ -157,6 +150,13 @@ class Level(enum.IntEnum):
 
 
 DEFAULT_THRESHOLD = Level.WARNING
+DEFAULT_COLOR_CONFIG = {
+    Level.DEBUG: ("blue",),
+    Level.INFO: ("cyan",),
+    Level.WARNING: ("yellow",),
+    Level.ERROR: ("red",),
+    Level.CRITICAL: ("red", "on_yellow", ["bold", "underline", "blink"]),
+}
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
@@ -224,8 +224,8 @@ class StreamWriterHandler(Handler):
             message or just write the log event's message. Defaults to True.
         level_name_width (int, optional): The width to ljust the level.
             Defaults to 8.
-        color_config (dict[str, tuple[object, ...]], optional): A dictionary
-            where the keys are the level strings, and the values are the `args`
+        color_config (Mapping[int, tuple[object, ...]], optional): A dictionary
+            where the keys are the levels, and the values are the `args`
             to `termcolor.colored(level, *args)`. Defaults to
             DEFAULT_COLOR_CONFIG.
     """
@@ -236,25 +236,9 @@ class StreamWriterHandler(Handler):
     use_colors: bool = True
     should_format_message: bool = True
     level_name_width: int = 8
-    color_config: Mapping[str, tuple[object, ...]] = dataclasses.field(
+    color_config: Mapping[int, tuple[object, ...]] = dataclasses.field(
         default_factory=lambda: DEFAULT_COLOR_CONFIG.copy()
     )
-
-    def color(self, level: str) -> str:
-        """
-        Colorize the level.
-
-        Args:
-            level (str): The string to colorize.
-
-        Returns:
-            str: The colorized string.
-        """
-        if not self.use_colors:
-            return level
-        if level in self.color_config:
-            return termcolor.colored(level, *self.color_config[level])
-        return level
 
     def level_to_str(self, level: int) -> str:
         """
@@ -267,14 +251,14 @@ class StreamWriterHandler(Handler):
             str: The string.
         """
         try:
-            string = Level.new(level).name.upper()
+            string = Level.new(level).name.upper().ljust(self.level_name_width)
         except (ValueError, AttributeError):
-            string = str(level)
+            string = str(level).ljust(self.level_name_width)
 
-        if self.use_colors:
-            string = self.color(string)
+        if self.use_colors and (level in self.color_config):
+            string = termcolor.colored(string, *self.color_config[level])
 
-        return string.ljust(self.level_name_width)
+        return string
 
     def format_message(self, logger: "Logger", event: LogEvent) -> str:
         """
