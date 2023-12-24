@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install build
-          ls
+          python -c "__import__('os').system('ls')"
           python -m build
 
       - name: Publish package distributions to PyPI
