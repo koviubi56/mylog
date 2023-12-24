@@ -31,11 +31,11 @@ jobs:
         with:
           egress-policy: audit
 
+      - uses: actions/checkout@main
       - name: Build
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install build
-          python -c "print(list(__import__('pathlib').Path('.').glob('*')))"
           python -m build
 
       - name: Publish package distributions to PyPI
