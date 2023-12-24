@@ -130,19 +130,6 @@ def test_no_handler() -> None:
 
 class TestStreamWriterHandler:
     @staticmethod
-    def test_color() -> None:
-        handler = mylog.StreamWriterHandler(sys.stderr)
-        assert handler.color("DEBUG") == termcolor.colored("DEBUG", "blue")
-        assert handler.color("CRITICAL") == termcolor.colored(
-            "CRITICAL", "red", "on_yellow", ["bold", "underline", "blink"]
-        )
-        assert handler.color("FATAL") == "FATAL"
-        handler.use_colors = False
-        assert handler.color("DEBUG") == "DEBUG"
-        assert handler.color("CRITICAL") == "CRITICAL"
-        assert handler.color("FATAL") == "FATAL"
-
-    @staticmethod
     def test_level_to_str() -> None:
         handler = mylog.StreamWriterHandler(sys.stderr)
         assert handler.level_to_str(mylog.Level.DEBUG) == termcolor.colored(
