@@ -1,8 +1,6 @@
 # mylog
 
 [![Hits-of-Code](https://hitsofcode.com/github/koviubi56/mylog?branch=main)](https://hitsofcode.com/github/koviubi56/mylog/view?branch=main)
-![Codacy grade](https://img.shields.io/codacy/grade/60939547f7b344bea1094f4c90ee69bb)
-![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/koviubi56/mylog/main)
 ![Codecov](https://img.shields.io/codecov/c/github/koviubi56/mylog)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![semantic-release](https://img.shields.io/badge/%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)
@@ -10,6 +8,8 @@
 ![PyPI](https://img.shields.io/pypi/v/python-mylog)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-mylog)
 ![PyPI - Format](https://img.shields.io/pypi/format/python-mylog)
+![PyPI - Implementation](https://img.shields.io/pypi/implementation/python-mylog)
+![GitHub Workflow Status Tests](https://img.shields.io/github/actions/workflow/status/koviubi56/mylog/tests.yml?label=tests)
 
 A simple logging library for Python.
 
