@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2024-01-27
+
+### Changed
+
+- Changed how propagating works:
+  - It used to be:
+    - Should propagate?
+      - Yes: log with parent
+      - No: log with self
+  - It now is:
+    - Log with self
+    - If should propagate:
+      - Log with parent
+
 ## [0.9.1] - 2023-12-24
 
 ### Changed

@@ -1,5 +1,5 @@
 """
-Copyright (C) 2022-2023  Koviubi56
+Copyright (C) 2022-2024  Koviubi56
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-__version__ = "0.9.1"
+__version__ = "0.10.0"
 __author__ = "Koviubi56"
 __email__ = "koviubi56@duck.com"
 __license__ = "GPL-3.0-or-later"
-__copyright__ = "Copyright (C) 2022-2023 Koviubi56"
+__copyright__ = "Copyright (C) 2022-2024 Koviubi56"
 __description__ = "My logging library."
 __url__ = "https://github.com/koviubi56/mylog"
 
@@ -630,11 +630,10 @@ class Logger:
         """
         if self.is_disabled(event):
             return
-        if self.should_propagate(event):
-            self.actually_propagate(event)
-            return
         if self.should_be_logged(event):
             self._log(event)
+        if self.should_propagate(event):
+            self.actually_propagate(event)
 
     def _predefined_log(
         self,

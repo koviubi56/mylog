@@ -1,5 +1,5 @@
 """
-Copyright (C) 2022-2023  Koviubi56
+Copyright (C) 2022-2024  Koviubi56
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -381,16 +381,17 @@ class TestLogger:
 
     @staticmethod
     def test_log_propagate() -> None:
-        logger = mylog.root.create_child("logger")
-        logger.propagate = True
-        logger.actually_propagate = Mock()
-        logger.should_be_logged = Mock()
-        logger.handlers = [NeverHandler()]
+        parent_logger = mylog.root.create_child("parent")
+        parent_logger._call_handlers = Mock()
+        child_logger = parent_logger.create_child("child")
+        child_logger.propagate = True
+        handler = Mock()
+        child_logger.handlers = [handler]
 
-        logger.log(TEST_LOG_EVENT)
+        child_logger.log(TEST_LOG_EVENT)
 
-        logger.actually_propagate.assert_called_once_with(TEST_LOG_EVENT)
-        logger.should_be_logged.assert_not_called()
+        handler.handle.assert_called_once_with(child_logger, TEST_LOG_EVENT)
+        parent_logger._call_handlers.assert_called_once_with(TEST_LOG_EVENT)
 
     @staticmethod
     def test_log_should_not_be_logged() -> None:
