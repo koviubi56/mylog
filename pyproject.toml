@@ -44,8 +44,11 @@ dependencies = { file = "requirements.txt" }
 [tool.setuptools.package-data]
 mylog = ["py.typed"]
 
-
 [tool.ruff]
+line-length = 79
+target-version = "py310"
+
+[tool.ruff.lint]
 select = ["ALL"]
 ignore = [
     "ANN101",
@@ -62,6 +65,16 @@ ignore = [
     "TD003",
     "TRY003",
 ]
+per-file-ignores = { "tests/*" = [
+    "D",
+    "PLR2004",
+    "S101",
+    "SLF001",
+], "noxfile.py" = [
+    "D",
+], "setup.py" = [
+    "D",
+] }
 fixable = [
     "F632",
     "E711",
@@ -94,20 +107,8 @@ fixable = [
     "SIM211",
     "SIM212",
 ]
-per-file-ignores = { "tests/*" = [
-    "D",
-    "PLR2004",
-    "S101",
-    "SLF001",
-], "noxfile.py" = [
-    "D",
-], "setup.py" = [
-    "D",
-] }
-line-length = 79
-target-version = "py310"
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 ignore-decorators = ["typing.overload"]
 

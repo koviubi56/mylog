@@ -106,3 +106,5 @@ A copy of the DCO can be found at <https://developercertificate.org/> or here:
 > personal information I submit with it, including my sign-off) is
 > maintained indefinitely and may be redistributed consistent with
 > this project or the open source license(s) involved.
+
+Any contribution submitted for inclusion in the project by you, shall be licensed under the project's license, without any additional terms or conditions.
